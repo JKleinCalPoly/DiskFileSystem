@@ -1,3 +1,5 @@
+import Errors
+
 BLOCKSIZE = 256
 
 # This function opens a regular UNIX file and designates the first nBytes of it as space for the emulated disk.
