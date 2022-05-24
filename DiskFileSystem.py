@@ -16,7 +16,7 @@ def openDisk(filename, nBytes):
         else:
             raise diskNotFound (filename)
     elif (nBytes < 0):
-        #throw error for invalid nBytes
+        raise nBytesNegativeError (nBytes)
     else:
         if ((nBytes % BLOCKSIZE) == 0):
             file = open (filename, 'w+')
