@@ -12,14 +12,13 @@ BLOCKSIZE = 256
 def openDisk(filename, nBytes):
     if nBytes == 0:
         if (exists(filename)):
-            file = open (filename, 'r')
+            file = open (filename, 'w')
         else:
-           # raise disk not found error
-        #use exisitng
+            raise diskNotFound (filename)
     elif (nBytes < 0):
         #throw error for invalid nBytes
     else:
-        if (nBytes % BLOCKSIZE == 0):
+        if nBytes % BLOCKSIZE == 0:
             file = open (filename, 'w+')
         else:
             raise nBytesError(nBytes)
