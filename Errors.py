@@ -1,6 +1,6 @@
 class nBytesError(Exception):
     def __init__(self, nbytes):
-        self.message = str(nbytes) + " is not a multiple of 256"
+        self.message = str(nbytes) + " is not a positive multiple of 256"
         self.exit_num = -1
         super().__init__(self.message)
 
@@ -10,8 +10,4 @@ class diskNotFound(FileNotFoundException):
         self.exitnumber = -2
         super().__init__(self.message)
 
-class nBytesNegativeError(Exception):
-    def __init__(self, nbytes):
-        self.message = str(nbytes) + " must be zero or a positive multiple of 256"
-        self.exit_num = -3
-        super().__init__(self.message)
+

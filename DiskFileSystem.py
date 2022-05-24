@@ -8,21 +8,28 @@ BLOCKSIZE = 256
 # If nBytes > 0 and there is already a file by the given filename, that disk is resized to nBytes,
 # and that file’s contents may be overwritten. If nBytes is 0, an existing disk is opened,
 # and should not be overwritten. There is no requirement to maintain integrity of any content beyond nBytes.
-# Errors must be returned for any other failures, as defined by your own error code system.
+# Errors must be returned for any other failures, as defined by your own error code system.''
+
+# return file descriptor of current open disk
 def openDisk(filename, nBytes):
-    if nBytes == 0:
-        if (exists(filename)):
-            file = open (filename, 'w')
+    try:
+        if nBytes == 0:
+            if (exists(filename)):
+                disk = open (filename, 'w')
+            else:
+                raise diskNotFound (filename)
+        elif (nBytes < 0):
+            raise nBytesError (nBytes)
         else:
-            raise diskNotFound (filename)
-    elif (nBytes < 0):
-        raise nBytesNegativeError (nBytes)
-    else:
-        if nBytes % BLOCKSIZE == 0:
-            file = open (filename, 'w+')
-        else:
-            raise nBytesError(nBytes)
-    return 0
+            if nBytes % BLOCKSIZE == 0:
+                disk = open (filename, 'w+')
+            else:
+                raise nBytesError(nBytes)
+    catch Exception as e:
+        print(e.message)
+        exit(e.exit_num)
+
+    return disk 
 
 # readBlock() reads an entire block of BLOCKSIZE bytes from the open disk (identified by ‘disk’) and
 # copies the result into a local buffer (must be at least of BLOCKSIZE bytes).
