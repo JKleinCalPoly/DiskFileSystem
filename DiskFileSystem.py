@@ -51,7 +51,10 @@ def closeDisk(disk):
     return None
 
 if __name__ == '__main__':
-    block = 42
-    readBlock(1, 2, block)
-    print(block)
+    try:
+        raise(Errors.nBytesError(69))
+    except Errors.nBytesError as e:
+        print(e.message)
+        exit(e.exit_num)
+
     #openDisk("libDiskFile.img", 256 * 4096)
