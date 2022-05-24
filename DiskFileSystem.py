@@ -7,6 +7,19 @@ BLOCKSIZE = 256
 # and should not be overwritten. There is no requirement to maintain integrity of any content beyond nBytes.
 # Errors must be returned for any other failures, as defined by your own error code system.
 def openDisk(filename, nBytes):
+    if nBytes = 0:
+        if (exists(filename)):
+            file = open (filename, 'r')
+        else:
+           # raise disk not found error
+        #use exisitng
+    elif (nBytes < 0):
+        #throw error for invalid nBytes
+    else:
+        if (nBytes % BLOCKSIZE = 0):
+            file = open (filename, 'w+')
+        else:
+            raise nbytesError on nBytes
     return 0
 
 # readBlock() reads an entire block of BLOCKSIZE bytes from the open disk (identified by ‘disk’) and
