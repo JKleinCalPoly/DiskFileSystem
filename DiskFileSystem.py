@@ -10,7 +10,7 @@ BLOCKSIZE = 256
 # and should not be overwritten. There is no requirement to maintain integrity of any content beyond nBytes.
 # Errors must be returned for any other failures, as defined by your own error code system.
 def openDisk(filename, nBytes):
-    if nBytes = 0:
+    if (nBytes == 0):
         if (exists(filename)):
             file = open (filename, 'w')
         else:
@@ -18,7 +18,7 @@ def openDisk(filename, nBytes):
     elif (nBytes < 0):
         #throw error for invalid nBytes
     else:
-        if (nBytes % BLOCKSIZE = 0):
+        if ((nBytes % BLOCKSIZE) == 0):
             file = open (filename, 'w+')
         else:
             raise nbytesError on nBytes
