@@ -4,7 +4,7 @@ class nBytesError(Exception):
         self.exit_num = -1
         super().__init__(self.message)
 
-class diskNotFound(FileNotFoundException):
+class diskNotFound(FileNotFoundError):
     def __init__(self, filename):
         self.message = filename + " is not a recognized disk" 
         self.exitnumber = -2
