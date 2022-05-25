@@ -64,7 +64,7 @@ def writeBlock(disk, bNum, block):
 def closeDisk(disk):
     try:
         disk.close()
-    catch Exception as e:
+    except Exception as e:
         print(e.message)
         exit(e.exit_num)
 
