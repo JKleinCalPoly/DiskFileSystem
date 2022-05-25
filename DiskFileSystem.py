@@ -1,7 +1,7 @@
 from os.path import exists
 from Errors import *
 
-BLOCKSIZE = 256
+BLOCKSIZE = 10
 
 # This function opens a regular UNIX file and designates the first nBytes of it as space for the emulated disk.
 # nBytes should be a number that is evenly divisible by the block size.
@@ -25,7 +25,7 @@ def openDisk(filename, nBytes):
                 disk = open (filename, 'w+')
             else:
                 raise nBytesError(nBytes)
-    catch Exception as e:
+    except Exception as e:
         print(e.message)
         exit(e.exit_num)
 
@@ -40,6 +40,7 @@ def openDisk(filename, nBytes):
 # as defined by your own error code system.
 
 def readBlock(disk, bNum):
+    block = 0
     return block
 
 # writeBlock() takes disk number ‘disk’ and logical block number ‘bNum’ and writes the content of the buffer
@@ -49,6 +50,12 @@ def readBlock(disk, bNum):
 # Errors must be returned if ‘disk’ is not available (i.e. hasn’t been opened) or for any other failures,
 # as defined by your own error code system.
 def writeBlock(disk, bNum, block):
+    disk.seek(bNum * BLOCKSIZE)
+    for i in range(BLOCKSIZE):
+        if i >= len(block):
+            disk.write('0')
+        else:
+            disk.write(block[i])
     return 0
 
 # closeDisk() takes a disk number ‘disk’ and makes the disk closed to further I/O;
@@ -58,10 +65,5 @@ def closeDisk(disk):
     return None
 
 if __name__ == '__main__':
-    try:
-        raise(nBytesError(69))
-    except nBytesError as e:
-        print(e.message)
-        exit(e.exit_num)
-
-    #openDisk("libDiskFile.img", 256 * 4096)
+    disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    writeBlock(disk1, 1, '5' * 6)
