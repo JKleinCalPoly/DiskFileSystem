@@ -21,6 +21,7 @@ def openDisk(filename, nBytes):
         if nBytes == 0:
             if (exists(filename)):
                 disk = open (filename, 'w')
+                #TODO: how to find nbytes of previously created disk
             else:
                 raise diskNotFound (filename)
         elif (nBytes < 0):
@@ -45,7 +46,18 @@ def openDisk(filename, nBytes):
 # as defined by your own error code system.
 
 def readBlock(disk, bNum):
-    block = 0
+    try:
+        if bNum >= disk.nBytes:
+            raise readOOBError(bNum)
+        disk.fd.seek(bNum * BLOCKSIZE)
+        block = disk.fd.read(BLOCKSIZE)
+        #TODO: python will read to EOF if BLOCKSIZE > chars in file, is this a problem?
+    except FileNotFoundError as e:
+        print(e)
+        exit(-1)
+    except readOOBError as e:
+        print(e)
+        exit(e.exitnumber)
     return block
 
 # writeBlock() takes disk number ‘disk’ and logical block number ‘bNum’ and writes the content of the buffer
@@ -67,7 +79,7 @@ def writeBlock(disk, bNum, block):
     except FileNotFoundError as e:
         print(e)
         exit(-1)
-    except EOFError as e:
+    except writeOOBError as e:
         print(e)
         exit(e.exitnumber)
     return 0
@@ -83,8 +95,9 @@ def closeDisk(disk):
         exit(e.exit_num)
 
 if __name__ == '__main__':
-    #disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
-    disk1 = openDisk("libDiskFile.img", 0)
+    disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    #disk1 = openDisk("libDiskFile.img", 0)
     writeBlock(disk1, 1, '5' * 6)
     writeBlock(disk1, 3, 'b' * 3)
+    print(readBlock(disk1, 1))
     closeDisk(disk1)
