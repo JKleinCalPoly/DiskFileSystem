@@ -55,7 +55,14 @@ def writeBlock(disk, bNum, block):
 # i.e. any subsequent reads or writes to a closed disk should return an error.
 # Closing a disk should also close the underlying file, committing any writes being buffered by the real OS.
 def closeDisk(disk):
-    return None
+    try:
+        disk.close()
+    catch Exception as e:
+        print(e.message)
+        exit(e.exit_num)
+
+
+
 
 if __name__ == '__main__':
     try:
