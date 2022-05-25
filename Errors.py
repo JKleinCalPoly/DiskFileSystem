@@ -1,13 +1,25 @@
 class nBytesError(Exception):
     def __init__(self, nbytes):
         self.message = str(nbytes) + " is not a positive multiple of 256"
-        self.exit_num = -1
+        self.exit_num = -2
         super().__init__(self.message)
 
 class diskNotFound(FileNotFoundError):
     def __init__(self, filename):
         self.message = filename + " is not a recognized disk" 
-        self.exitnumber = -2
+        self.exitnumber = -3
+        super().__init__(self.message)
+
+class writeOOBError(EOFError):
+    def __init__(self, nbytes):
+        self.message = "Block " + str(nbytes) + " is out of bounds for that current disk"
+        self.exitnumber = -4
+        super().__init__(self.message)
+
+class readOOBError(EOFError):
+    def __init__(self, nbytes):
+        self.message = "Block " + str(nbytes) + " is out of bounds for that current disk"
+        self.exitnumber = -4
         super().__init__(self.message)
 
 

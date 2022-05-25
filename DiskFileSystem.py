@@ -3,6 +3,11 @@ from Errors import *
 
 BLOCKSIZE = 10
 
+class diskFile:
+    def __init__(self, fd, nBytes):
+        self.fd = fd
+        self.nBytes = nBytes
+
 # This function opens a regular UNIX file and designates the first nBytes of it as space for the emulated disk.
 # nBytes should be a number that is evenly divisible by the block size.
 # If nBytes > 0 and there is already a file by the given filename, that disk is resized to nBytes,
@@ -29,7 +34,7 @@ def openDisk(filename, nBytes):
         print(e.message)
         exit(e.exit_num)
 
-    return disk 
+    return diskFile(disk, nBytes)
 
 # readBlock() reads an entire block of BLOCKSIZE bytes from the open disk (identified by ‘disk’) and
 # copies the result into a local buffer (must be at least of BLOCKSIZE bytes).
@@ -50,12 +55,21 @@ def readBlock(disk, bNum):
 # Errors must be returned if ‘disk’ is not available (i.e. hasn’t been opened) or for any other failures,
 # as defined by your own error code system.
 def writeBlock(disk, bNum, block):
-    disk.seek(bNum * BLOCKSIZE)
-    for i in range(BLOCKSIZE):
-        if i >= len(block):
-            disk.write('0')
-        else:
-            disk.write(block[i])
+    try:
+        if bNum >= disk.nBytes:
+            raise writeOOBError(bNum)
+        disk.fd.seek(bNum * BLOCKSIZE)
+        for i in range(BLOCKSIZE):
+            if i >= len(block):
+                disk.fd.write('0')
+            else:
+                disk.fd.write(block[i])
+    except FileNotFoundError as e:
+        print(e)
+        exit(-1)
+    except EOFError as e:
+        print(e)
+        exit(e.exitnumber)
     return 0
 
 # closeDisk() takes a disk number ‘disk’ and makes the disk closed to further I/O;
@@ -63,14 +77,14 @@ def writeBlock(disk, bNum, block):
 # Closing a disk should also close the underlying file, committing any writes being buffered by the real OS.
 def closeDisk(disk):
     try:
-        disk.close()
+        disk.fd.close()
     except Exception as e:
         print(e.message)
         exit(e.exit_num)
 
-
-
-
 if __name__ == '__main__':
-    disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    #disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    disk1 = openDisk("libDiskFile.img", 0)
     writeBlock(disk1, 1, '5' * 6)
+    writeBlock(disk1, 3, 'b' * 3)
+    closeDisk(disk1)
