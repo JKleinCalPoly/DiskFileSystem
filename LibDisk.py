@@ -1,7 +1,8 @@
 from os.path import exists
 from Errors import *
 
-BLOCKSIZE = 10
+BLOCKSIZE = 10 
+#TODO: change back to 256 before submit/demo
 
 class diskFile:
     def __init__(self, fd, nBytes):
