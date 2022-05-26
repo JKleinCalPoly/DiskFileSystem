@@ -1,0 +1,4 @@
+Superblock:
+0: 0x5A (magic number)
+1: 00000001 (address of root inode)
+2-255: bitmap of free blocks
