@@ -1,4 +1,34 @@
+Disk stores blocks of BLOCKSIZE*2 characters, each character representing 4 bits in hex
+
 Superblock:
 0: 0x5A (magic number)
-1: 00000001 (address of root inode)
-2-255: bitmap of free blocks
+1-2: 0x0001 (block of root inode)
+3-4: block address of inode of currently open file (0x0001 if "nothing" currently open)
+5-255: bitmap of free blocks - limits max # of blocks to 8*251 = 2014 blocks
+
+Addressing:
+max of 2014 (2^11) blocks requires 11 bits to index so addresses are all 2 bytes
+stores first block address of file, each data block's last 2 bytes are dedicated to the address of the next block in the file.
+EOF represented by address 0xFFFF, which is always out of range. (0x07ED is the maximum address of our FS)
+
+Inodes:
+0: inode type (0x00 for file, 0x01 for directory)
+file:
+    1-2: address of first data block
+    3-5: total number of bytes in file
+    (MAXBLOCKS(2014) - 3 (superblock, root inode, this inode)) * (256 (blocksize) - 2 (addr of next)) - 8(filename) = ~2^19
+directory:
+    1-8: filename of first entry
+    9-10: address of inode of first entry
+    repeat those 10 bytes for each entry
+
+Data blocks:
+    block 0:
+    0-7: filename
+    ~~any additional metadata here~~
+    8-253: data
+    254-255: address of next data block
+
+    blocks 1+:
+    0-253: data
+    254-255: address of next data block

@@ -101,3 +101,4 @@ if __name__ == '__main__':
     writeBlock(disk1, 3, 'b' * 3)
     print(readBlock(disk1, 1))
     closeDisk(disk1)
+    print(0b01011000)

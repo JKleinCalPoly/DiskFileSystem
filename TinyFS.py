@@ -1,4 +1,5 @@
-# Makes an empty TinyFS file system of size nBytes on the file specified by ‘filename’. 
+from LibDisk import BLOCKSIZE
+# Makes an empty TinyFS file system of size nBytes on the file specified by ‘filename’.
 #This function should use the emulated disk library to open the specified file, and upon success, format the file to be mountable. 
 #This includes initializing all data to 0x00, setting magic numbers, initializing and writing the superblock and other metadata, etc. 
 #Must return a specified success/error code. */
@@ -34,9 +35,6 @@ def tfs_readByte(fileDescriptor FD, char *buffer):
 def tfs_seek(fileDescriptor FD, int offset):
 
 #You must also include the following definitions someplace within the library (given in C):
-
-#/* The default size of the disk and file system block */
-define BLOCKSIZE 256
 
 #/* Your program should use a 10240 byte disk size giving you 40 blocks total. This is the default size. You must be able to support different possible values, or report an error if it exceeds the limits of your implementation. */
 define DEFAULT_DISK_SIZE 10240 
