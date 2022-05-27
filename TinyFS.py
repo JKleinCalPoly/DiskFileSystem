@@ -19,22 +19,40 @@ def tfs_mkfs(filename, nBytes):
             LibDisk.writeBlock(disk, i, "01")
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
+    LibDisk.closeDisk(filename)
     return 0
 
 #/* tfs_mount(char *filename) “mounts” a TinyFS file system located within ‘filename’.
-# tfs_unmount(void) “unmounts” the currently mounted file system. As part of the mount operation, tfs_mount should verify the file system is the correct type.#
+# tfs_unmount(void) “unmounts” the currently mounted file system. As part of the mount operation,
+# tfs_mount should verify the file system is the correct type.#
 # Only one file system may be mounted at a time. Use tfs_unmount to cleanly unmount the currently mounted file system.
 # Must return a specified success/error code. */
 def tfs_mount(filename):
+
     if (currentMount == None):
         currentMount = filename
     else:
-        tfs_unmount(currentMount)
-        currentMount = filename
-    disk = 0
-    return disk
+        try:
+            tfs_unmount(currentMount)
+            currentMount = filename
+        except Exception as e:
+            print(e.message)
+            exit(e.exit_num)
+    
+    try:
+        FD = LibDisk.openDisk(filename, 0)
+    except Exception as e:
+        print(e.message)
+        exit(e.exit_num)
 
-def tfs_unmount(void):
+        block = LibDisk.ReadBlock(FD, 0)
+        if not block.startswith("5A"):
+            raise DiskFormatError(filename)
+    return FD
+
+def tfs_unmount():
+    LibDisk.closeDisk(currentMount)
+    currentMount = None
     return 0
 
 #/* Opens a file for reading and writing on the currently mounted file system.#
