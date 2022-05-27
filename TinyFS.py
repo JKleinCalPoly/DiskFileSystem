@@ -1,11 +1,24 @@
-from LibDisk import BLOCKSIZE
+import LibDisk
+from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
 DEFAULT_DISK_NAME = "tinyFSDisk"
+
+ResourceTable = {} #format {FD: (name, progress/index)}
+currentMount = None #replace w/ filename of current filesystem 
+
 # Makes an empty TinyFS file system of size nBytes on the file specified by ‘filename’.
 #This function should use the emulated disk library to open the specified file, and upon success, format the file to be mountable. 
 #This includes initializing all data to 0x00, setting magic numbers, initializing and writing the superblock and other metadata, etc. 
 #Must return a specified success/error code. */
 def tfs_mkfs(filename, nBytes):
+    disk = LibDisk.openDisk(filename, nBytes)
+    for i in range(int(nBytes / LibDisk.BLOCKSIZE)):
+        if i == 0:
+            LibDisk.writeBlock(disk, i, "5A00010001")
+        elif i == 1:
+            LibDisk.writeBlock(disk, i, "01")
+        else:
+            LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
     return 0
 
 #/* tfs_mount(char *filename) “mounts” a TinyFS file system located within ‘filename’.
@@ -13,6 +26,11 @@ def tfs_mkfs(filename, nBytes):
 # Only one file system may be mounted at a time. Use tfs_unmount to cleanly unmount the currently mounted file system.
 # Must return a specified success/error code. */
 def tfs_mount(filename):
+    if (currentMount == None):
+        currentMount = filename
+    else:
+        tfs_unmount(currentMount)
+        currentMount = filename
     disk = 0
     return disk
 
@@ -23,10 +41,15 @@ def tfs_unmount(void):
 # Creates a dynamic resource table entry for the file (the structure that tracks open files, the internal file pointer, etc.),
 # and returns a file descriptor (integer) that can be used to reference this file while the filesystem is mounted. */
 def tfs_open(name):
+    ResourceTable.update({fd:(name, 0)})
     return fd
 
 #/* Closes the file and removes dynamic resource table entry */
 def tfs_close(FD):
+    if FD in ResourceTable:
+        ResourceTable.pop(FD)
+    else:
+        raise FileNotFoundError (FD)
     return 0
 #/* Writes buffer ‘buffer’ of size ‘size’, which represents an entire file’s contents, to the file described by ‘FD’.#
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
@@ -44,3 +67,6 @@ def tfs_readByte(FD, buffer):
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
     return 0
+
+if __name__ == '__main__':
+    tfs_mkfs(DEFAULT_DISK_NAME, 90)
