@@ -21,15 +21,7 @@ def tfs_mkfs(filename, nBytes):
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
     LibDisk.closeDisk(disk)
-    fs = LibDisk.openDisk(filename, nBytes)
-    for i in range(int(nBytes / BLOCKSIZE)):
-        if i == 0:
-            LibDisk.writeBlock(fs, i, '5A00010001')
-        elif i == 1:
-            LibDisk.writeBlock(fs, i, '01')
-        else:
-            LibDisk.writeBlock(fs, i, '00' * BLOCKSIZE)
-    return fs
+    return disk
 
 #/* tfs_mount(char *filename) “mounts” a TinyFS file system located within ‘filename’.
 # tfs_unmount(void) “unmounts” the currently mounted file system. As part of the mount operation,
