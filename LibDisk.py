@@ -22,7 +22,7 @@ def openDisk(filename, nBytes):
         if nBytes == 0:
             if (exists(filename)):
                 disk = open (filename, 'r')
-                nBytes = int(len(disk.readline()) / BLOCKSIZE)
+                nBytes = int(len(disk.readline()) / (BLOCKSIZE * 2))
                 disk.close()
                 disk = open(filename, 'a+')
                 #TODO: how to find nbytes of previously created disk
@@ -32,7 +32,7 @@ def openDisk(filename, nBytes):
             raise nBytesError (nBytes)
         else:
             if nBytes % BLOCKSIZE == 0:
-                disk = open (filename, 'w+')
+                disk = open(filename, 'w+')
             else:
                 raise nBytesError(nBytes)
     except Exception as e:
@@ -71,6 +71,7 @@ def readBlock(disk, bNum):
 # Errors must be returned if ‘disk’ is not available (i.e. hasn’t been opened) or for any other failures,
 # as defined by your own error code system.
 def writeBlock(disk, bNum, block):
+    #print(block)
     try:
         if bNum >= disk.nBytes:
             raise writeOOBError(bNum)
@@ -105,4 +106,3 @@ if __name__ == '__main__':
     writeBlock(disk1, 3, 'b' * 3)
     print(readBlock(disk1, 1))
     closeDisk(disk1)
-    print(0b01011000)

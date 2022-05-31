@@ -4,7 +4,8 @@ DEFAULT_DISK_SIZE = 10240
 DEFAULT_DISK_NAME = "tinyFSDisk"
 
 ResourceTable = {} #format {FD: (name, progress/index)}
-currentMount = None #replace w/ filename of current filesystem 
+global currentMount
+currentMount = None
 
 # Makes an empty TinyFS file system of size nBytes on the file specified by ‘filename’.
 #This function should use the emulated disk library to open the specified file, and upon success, format the file to be mountable. 
@@ -20,7 +21,15 @@ def tfs_mkfs(filename, nBytes):
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
     LibDisk.closeDisk(disk)
-    return 0
+    fs = LibDisk.openDisk(filename, nBytes)
+    for i in range(int(nBytes / BLOCKSIZE)):
+        if i == 0:
+            LibDisk.writeBlock(fs, i, '5A00010001')
+        elif i == 1:
+            LibDisk.writeBlock(fs, i, '01')
+        else:
+            LibDisk.writeBlock(fs, i, '00' * BLOCKSIZE)
+    return fs
 
 #/* tfs_mount(char *filename) “mounts” a TinyFS file system located within ‘filename’.
 # tfs_unmount(void) “unmounts” the currently mounted file system. As part of the mount operation,
@@ -28,32 +37,25 @@ def tfs_mkfs(filename, nBytes):
 # Only one file system may be mounted at a time. Use tfs_unmount to cleanly unmount the currently mounted file system.
 # Must return a specified success/error code. */
 def tfs_mount(filename):
-    global currentMount
-    if (currentMount == None):
-        currentMount = filename
-    else:
-        try:
-            tfs_unmount(currentMount)
-            currentMount = filename
-        except Exception as e:
-            print(e)
-            exit(-1)
-    
+    global currentMount # replace w/ filename of current filesystem
     try:
+        if (currentMount != None):
+            tfs_unmount(currentMount)
         FD = LibDisk.openDisk(filename, 0)
+        print(FD.nBytes)
+        currentMount = FD
     except Exception as e:
         print(e)
         exit(-1)
 
-        block = LibDisk.ReadBlock(FD, 0)
-        if not block.startswith("5A"):
-            raise DiskFormatError(filename)
+    block = LibDisk.readBlock(FD, 0)
+    if not block.startswith("5A"):
+        print(block)
+        raise DiskFormatError(filename)
     return FD
 
-def tfs_unmount():
-    global currentMount
-    LibDisk.closeDisk(currentMount)
-    currentMount = None
+def tfs_unmount(diskFile):
+    LibDisk.closeDisk(diskFile)
     return 0
 
 #/* Opens a file for reading and writing on the currently mounted file system.#
@@ -90,5 +92,6 @@ def tfs_seek(FD, offset):
     ResourceTable[FD] = (ResourceTable[FD][0], offset)
 
 if __name__ == '__main__':
-    tfs_mkfs(DEFAULT_DISK_NAME, 90)
-    tfs_mount(DEFAULT_DISK_NAME)
+    #fs = tfs_mkfs(DEFAULT_DISK_NAME, 90)
+    df = tfs_mount(DEFAULT_DISK_NAME)
+    print(df)
