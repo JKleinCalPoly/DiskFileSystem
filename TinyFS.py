@@ -21,15 +21,7 @@ def tfs_mkfs(filename, nBytes):
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
     LibDisk.closeDisk(disk)
-    fs = LibDisk.openDisk(filename, nBytes)
-    for i in range(int(nBytes / BLOCKSIZE)):
-        if i == 0:
-            LibDisk.writeBlock(fs, i, '5A00010001')
-        elif i == 1:
-            LibDisk.writeBlock(fs, i, '01')
-        else:
-            LibDisk.writeBlock(fs, i, '00' * BLOCKSIZE)
-    return fs
+    return disk
 
 #/* tfs_mount(char *filename) “mounts” a TinyFS file system located within ‘filename’.
 # tfs_unmount(void) “unmounts” the currently mounted file system. As part of the mount operation,
@@ -45,8 +37,8 @@ def tfs_mount(filename):
         print(FD.nBytes)
         currentMount = FD
     except Exception as e:
-        print(e.message)
-        exit(e.exit_num)
+        print(e)
+        exit(-1)
 
     block = LibDisk.readBlock(FD, 0)
     if not block.startswith("5A"):
@@ -62,7 +54,7 @@ def tfs_unmount(diskFile):
 # Creates a dynamic resource table entry for the file (the structure that tracks open files, the internal file pointer, etc.),
 # and returns a file descriptor (integer) that can be used to reference this file while the filesystem is mounted. */
 def tfs_open(name):
-   ResourceTable.update({fd:(name, 0)})
+    ResourceTable.update({fd:(name, 0)})
     return fd
 
 #/* Closes the file and removes dynamic resource table entry */
