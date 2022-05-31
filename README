@@ -12,22 +12,25 @@ stores first block address of file, each data block's last 2 bytes are dedicated
 EOF represented by address 0xFFFF, which is always out of range. (0x07ED is the maximum address of our FS)
 
 Inodes:
-0: inode type (0x00 for file, 0x01 for directory)
-file:
-    1-2: address of first data block
-    3-5: total number of bytes in file
+    0-1: address of first data block
+    2-4: total number of bytes in file
     (MAXBLOCKS(2014) - 3 (superblock, root inode, this inode)) * (256 (blocksize) - 2 (addr of next)) - 8(filename) = ~2^19
-directory:
-    1-8: filename of first entry
-    9-10: address of inode of first entry
-    repeat those 10 bytes for each entry
+
 
 Data blocks:
     block 0:
-    0-7: filename
+    0: 0-File or 1-Directory
+    1-8: filename
     ~~any additional metadata here~~
-    8-253: data
-    254-255: address of next data block
+    File:
+        9-253: data
+        254-255: address of next data block
+
+    Directory:
+        9-16: filename
+        17-18: address of inode of file
+        19-249: [repeats 10 bytes at a time]
+        254-255: address of next data block
 
     blocks 1+:
     0-253: data

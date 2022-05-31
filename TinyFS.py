@@ -62,7 +62,7 @@ def tfs_close(FD):
     if FD in ResourceTable:
         ResourceTable.pop(FD)
     else:
-        raise FileNotFoundError (FD)
+        raise FileNotFoundError(FD)
     return 0
 #/* Writes buffer ‘buffer’ of size ‘size’, which represents an entire file’s contents, to the file described by ‘FD’.#
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
