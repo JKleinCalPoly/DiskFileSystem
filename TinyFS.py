@@ -54,7 +54,8 @@ def tfs_unmount(diskFile):
 # Creates a dynamic resource table entry for the file (the structure that tracks open files, the internal file pointer, etc.),
 # and returns a file descriptor (integer) that can be used to reference this file while the filesystem is mounted. */
 def tfs_open(name):
-    ResourceTable.update({fd:(name, 0)})
+
+    ResourceTable.update({fd:[name, 0]})
     return fd
 
 #/* Closes the file and removes dynamic resource table entry */
@@ -75,8 +76,12 @@ def tfs_delete(FD):
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
-def tfs_readByte(FD, buffer):#how should this be implemented in python when we do not have mutable string buffers like in c
+def tfs_readByte(FD, buffer):
     byte = 0
+    index = ResourceTable[FD][1]
+    if (index >= fileSizeFromInode):
+        raise readOOBError
+    ResourceTable[FD][1] = index + 1
     return byte
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
