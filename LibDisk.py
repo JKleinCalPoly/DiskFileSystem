@@ -24,7 +24,7 @@ def openDisk(filename, nBytes):
                 disk = open (filename, 'r')
                 nBytes = int(len(disk.readline()) / BLOCKSIZE)
                 disk.close()
-                disk = open(filename, 'w+')
+                disk = open(filename, 'a+')
                 #TODO: how to find nbytes of previously created disk
             else:
                 raise diskNotFound (filename)
@@ -61,7 +61,7 @@ def readBlock(disk, bNum):
         exit(-1)
     except readOOBError as e:
         print(e)
-        exit(e.exitnumber)
+        exit(-1)
     return block
 
 # writeBlock() takes disk number ‘disk’ and logical block number ‘bNum’ and writes the content of the buffer
@@ -85,7 +85,7 @@ def writeBlock(disk, bNum, block):
         exit(-1)
     except writeOOBError as e:
         print(e)
-        exit(e.exitnumber)
+        exit(-1)
     return 0
 
 # closeDisk() takes a disk number ‘disk’ and makes the disk closed to further I/O;
@@ -95,12 +95,12 @@ def closeDisk(disk):
     try:
         disk.fd.close()
     except Exception as e:
-        print(e.message)
-        exit(e.exit_num)
+        print(e)
+        exit(-1)
 
 if __name__ == '__main__':
-    #disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
-    disk1 = openDisk("libDiskFile.img", 0)
+    disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    #disk1 = openDisk("libDiskFile.img", 0)
     writeBlock(disk1, 1, '5' * 6)
     writeBlock(disk1, 3, 'b' * 3)
     print(readBlock(disk1, 1))

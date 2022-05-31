@@ -19,7 +19,7 @@ def tfs_mkfs(filename, nBytes):
             LibDisk.writeBlock(disk, i, "01")
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
-    LibDisk.closeDisk(filename)
+    LibDisk.closeDisk(disk)
     return 0
 
 #/* tfs_mount(char *filename) “mounts” a TinyFS file system located within ‘filename’.
@@ -28,7 +28,7 @@ def tfs_mkfs(filename, nBytes):
 # Only one file system may be mounted at a time. Use tfs_unmount to cleanly unmount the currently mounted file system.
 # Must return a specified success/error code. */
 def tfs_mount(filename):
-
+    global currentMount
     if (currentMount == None):
         currentMount = filename
     else:
@@ -36,14 +36,14 @@ def tfs_mount(filename):
             tfs_unmount(currentMount)
             currentMount = filename
         except Exception as e:
-            print(e.message)
-            exit(e.exit_num)
+            print(e)
+            exit(-1)
     
     try:
         FD = LibDisk.openDisk(filename, 0)
     except Exception as e:
-        print(e.message)
-        exit(e.exit_num)
+        print(e)
+        exit(-1)
 
         block = LibDisk.ReadBlock(FD, 0)
         if not block.startswith("5A"):
@@ -51,6 +51,7 @@ def tfs_mount(filename):
     return FD
 
 def tfs_unmount():
+    global currentMount
     LibDisk.closeDisk(currentMount)
     currentMount = None
     return 0
@@ -72,19 +73,22 @@ def tfs_close(FD):
 #/* Writes buffer ‘buffer’ of size ‘size’, which represents an entire file’s contents, to the file described by ‘FD’.#
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
 def tfs_write(FD, buffer, size):
+
+    ResourceTable[FD] = (ResourceTable[FD][0], 0)
     return 0
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
-def tfs_readByte(FD, buffer):
+def tfs_readByte(FD, buffer):#how should this be implemented in python when we do not have mutable string buffers like in c
     byte = 0
     return byte
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
-    return 0
+    ResourceTable[FD] = (ResourceTable[FD][0], offset)
 
 if __name__ == '__main__':
     tfs_mkfs(DEFAULT_DISK_NAME, 90)
+    tfs_mount(DEFAULT_DISK_NAME)
