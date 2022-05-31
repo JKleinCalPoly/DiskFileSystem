@@ -22,5 +22,11 @@ class readOOBError(EOFError):
         self.exitnumber = -4
         super().__init__(self.message)
 
+class DiskFormatError(Exception):
+    def __init__(self, filename):
+        self.message = "filename: " + filename + " is not a properly formatted disk"
+        self.exitnumber = -5
+        super().__init__(self.message)
+
 
 
