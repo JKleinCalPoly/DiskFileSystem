@@ -24,7 +24,7 @@ def openDisk(filename, nBytes):
                 disk = open (filename, 'r')
                 nBytes = int(len(disk.readline()) / (BLOCKSIZE * 2))
                 disk.close()
-                disk = open(filename, 'a+')
+                disk = open(filename, 'r+')
             else:
                 raise diskNotFound (filename)
         elif (nBytes < 0):
@@ -98,9 +98,11 @@ def closeDisk(disk):
         exit(-1)
 
 if __name__ == '__main__':
-    #disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
+    closeDisk(disk1)
     disk1 = openDisk("libDiskFile.img", 0)
     writeBlock(disk1, 1, '5' * 6)
+    writeBlock(disk1, 1, 'z' * 2)
     writeBlock(disk1, 3, 'b' * 3)
     print(readBlock(disk1, 1))
     closeDisk(disk1)

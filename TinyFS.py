@@ -41,7 +41,6 @@ def tfs_mount(filename):
         if (currentMount != None):
             tfs_unmount(currentMount)
         FD = LibDisk.openDisk(filename, 0)
-        print(FD.nBytes)
         currentMount = FD
     except Exception as e:
         print(e)
@@ -49,7 +48,6 @@ def tfs_mount(filename):
 
     block = LibDisk.readBlock(FD, 0)
     if not block.startswith("5A"):
-        print(block)
         raise DiskFormatError(filename)
     return FD
 
@@ -77,39 +75,68 @@ def tfs_open(name):
         print(name)
     superblock = LibDisk.readBlock(currentMount, 0)
     rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
-    print(rootinode)
     rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
-    print(rootdirectory)
     if not rootdirectory.startswith("01"):
         raise DiskFormatError(DEFAULT_DISK_NAME)
     sliceStart = 18
     sliceEnd = 34
     while True:
         entry = rootdirectory[sliceStart:sliceEnd]
-        if entry == "0000000000000000":
-            entry = "".join([hex(ord(x))[2:] for x in name])
-            numstuff = 16 - len(entry)
-            if numstuff > 0:
-                for i in range (numstuff):
-                    entry += "0"
-        else:
-            entry = bytes.fromhex(entry).decode("ASCII")
+        entry = bytes.fromhex(entry).decode("ASCII")
         if entry == name:
             break
-
-        print(entry)
         sliceEnd += 20
         sliceStart += 20
         if sliceEnd > 500:
             print(name + " not found")
             break
+
+    if entry != name:
+        sliceStart = 18
+        sliceEnd = 34
+        while True:
+            entry = rootdirectory[sliceStart:sliceEnd]
+            if entry == "0000000000000000":
+                entry = "".join([hex(ord(x))[2:] for x in name])
+                numstuff = 16 - len(entry)
+                if numstuff > 0:
+                    for i in range (numstuff):
+                        entry += "0"
+                rootdirectory = rootdirectory[:sliceStart] + entry + rootdirectory[sliceEnd:]
+                bitmap = superblock[10:]
+                nextInode, bitmap = tfs_alloc(bitmap)
+                nextData, bitmap = tfs_alloc(bitmap)
+                superblock = superblock[:10] + bitmap
+                newInode = hex(nextData)[2:]
+                LibDisk.writeBlock(currentMount, nextInode, newInode)
+                newData = "00" + entry
+                LibDisk.writeBlock(currentMount, nextData, newData)
+                break
+            sliceEnd += 20
+            sliceStart += 20
+            if sliceEnd > 500:
+                print("no room for " + name)
+                break
+
     fileinode = rootdirectory[sliceEnd:sliceEnd+4]
     superblock = superblock[0:6] + fileinode + superblock[10:]
+    print(superblock)
     LibDisk.writeBlock(currentMount, 0, superblock)
+    LibDisk.writeBlock(currentMount, 2, rootdirectory)
     fd = fdIndex
     fdIndex += 1
     ResourceTable.update({fd:[name, 0, fileinode]})
     return fd
+
+def tfs_alloc(bitmap):
+    for i, c in enumerate(bitmap):
+        if c != 'F':
+            binr = bin(int(c, 16))[2:].zfill(4)
+            print(binr)
+            for j, b in enumerate(binr):
+                if b == '0':
+                    binr = binr[:j] + '1' + binr[j + 1:]
+                    return (i * 4) + j, bitmap[:i] + hex(int(binr, 2))[2:].upper() + bitmap[i+1:]
 
 #/* Closes the file and removes dynamic resource table entry */
 def tfs_close(FD):
@@ -136,9 +163,10 @@ def tfs_seek(FD, offset):
     return 0
 
 if __name__ == '__main__':
-    #fs = tfs_mkfs(DEFAULT_DISK_NAME, 180)
+    fs = tfs_mkfs(DEFAULT_DISK_NAME, 180)
     df = tfs_mount(DEFAULT_DISK_NAME)
     tfs_open("test.txt")
-    tfs_open("6chars")
-    #tfs_close(2)
+    tfs_open("7chars")
+    tfs_close(2)
     print(ResourceTable)
+    tfs_unmount(df)
