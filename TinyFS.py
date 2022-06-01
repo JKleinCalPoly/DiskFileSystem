@@ -2,6 +2,8 @@ import LibDisk
 from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
 DEFAULT_DISK_NAME = "tinyFSDisk"
+MAX_DATA_IN_BLOCK = 254
+BLOCK_ONE_METADATA_SIZE = 9
 
 ResourceTable = {} #format {FD: [name, inode addr, index]}
 global currentMount
@@ -72,7 +74,7 @@ def tfs_open(name):
     if namestuff > 0:
         for i in range(namestuff):
             name += bytes.fromhex("00").decode("ASCII")
-        print(name)
+        #print(name)
     superblock = LibDisk.readBlock(currentMount, 0)
     rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
     rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
@@ -120,7 +122,7 @@ def tfs_open(name):
 
     fileinode = rootdirectory[sliceEnd:sliceEnd+4]
     superblock = superblock[0:6] + fileinode + superblock[10:]
-    print(superblock)
+    #print(superblock)
     LibDisk.writeBlock(currentMount, 0, superblock)
     LibDisk.writeBlock(currentMount, 2, rootdirectory)
     fd = fdIndex
@@ -132,7 +134,7 @@ def tfs_alloc(bitmap):
     for i, c in enumerate(bitmap):
         if c != 'F':
             binr = bin(int(c, 16))[2:].zfill(4)
-            print(binr)
+            #print(binr)
             for j, b in enumerate(binr):
                 if b == '0':
                     binr = binr[:j] + '1' + binr[j + 1:]
@@ -172,7 +174,7 @@ def tfs_seek(FD, offset):
     ResourceTable[FD] = (ResourceTable[FD][0], offset, ResourceTable[FD][2])
 
 if __name__ == '__main__':
-    fs = tfs_mkfs(DEFAULT_DISK_NAME, 180)
+    fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
     df = tfs_mount(DEFAULT_DISK_NAME)
     tfs_open("test.txt")
     tfs_open("7chars")

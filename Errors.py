@@ -12,7 +12,7 @@ class diskNotFound(FileNotFoundError):
 
 class writeOOBError(EOFError):
     def __init__(self, nbytes):
-        self.message = "Block " + str(nbytes) + " is out of bounds for that current disk"
+        self.message = "Block " + str(nbytes) + " is out of bounds for writing that current disk"
         self.exitnumber = -4
         super().__init__(self.message)
 
