@@ -2,7 +2,7 @@ Disk stores blocks of BLOCKSIZE*2 characters, each character representing 4 bits
 
 Superblock:
 0: 0x5A (magic number)
-1-2: 0x0001 (block of root inode)
+1-2: 0x0001 (block of root inode)w
 3-4: block address of inode of currently open file (0x0001 if "nothing" currently open)
 5-255: bitmap of free blocks - limits max # of blocks to 8*251 = 2014 blocks
 

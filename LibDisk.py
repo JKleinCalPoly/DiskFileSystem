@@ -1,7 +1,7 @@
 from os.path import exists
 from Errors import *
 
-BLOCKSIZE = 15
+BLOCKSIZE = 30
 #TODO: change back to 256 before submit/demo
 
 class diskFile:
@@ -24,8 +24,7 @@ def openDisk(filename, nBytes):
                 disk = open (filename, 'r')
                 nBytes = int(len(disk.readline()) / (BLOCKSIZE * 2))
                 disk.close()
-                disk = open(filename, 'a+')
-                #TODO: how to find nbytes of previously created disk
+                disk = open(filename, 'r+')
             else:
                 raise diskNotFound (filename)
         elif (nBytes < 0):
@@ -55,7 +54,6 @@ def readBlock(disk, bNum):
             raise readOOBError(bNum)
         disk.fd.seek(bNum * BLOCKSIZE * 2)
         block = disk.fd.read(BLOCKSIZE * 2)
-        #TODO: python will read to EOF if BLOCKSIZE > chars in file, is this a problem?
     except FileNotFoundError as e:
         print(e)
         exit(-1)
@@ -102,8 +100,10 @@ def closeDisk(disk):
 
 if __name__ == '__main__':
     disk1 = openDisk("libDiskFile.img", BLOCKSIZE * 5)
-    #disk1 = openDisk("libDiskFile.img", 0)
+    closeDisk(disk1)
+    disk1 = openDisk("libDiskFile.img", 0)
     writeBlock(disk1, 1, '5' * 6)
+    writeBlock(disk1, 1, 'z' * 2)
     writeBlock(disk1, 3, 'b' * 3)
     print(readBlock(disk1, 1))
     closeDisk(disk1)
