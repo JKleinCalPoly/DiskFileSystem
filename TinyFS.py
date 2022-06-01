@@ -1,3 +1,5 @@
+import math
+
 import LibDisk
 from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
@@ -104,10 +106,11 @@ def tfs_open(name):
                 if numstuff > 0:
                     for i in range (numstuff):
                         entry += "0"
-                rootdirectory = rootdirectory[:sliceStart] + entry + rootdirectory[sliceEnd:]
+
                 bitmap = superblock[10:]
                 nextInode, bitmap = tfs_alloc(bitmap)
                 nextData, bitmap = tfs_alloc(bitmap)
+                rootdirectory = rootdirectory[:sliceStart] + entry + format("%04X" % nextInode) + rootdirectory[sliceEnd+4:]
                 superblock = superblock[:10] + bitmap
                 newInode = hex(nextData)[2:]
                 LibDisk.writeBlock(currentMount, nextInode, newInode)
@@ -121,13 +124,14 @@ def tfs_open(name):
                 break
 
     fileinode = rootdirectory[sliceEnd:sliceEnd+4]
+    print(fileinode)
     superblock = superblock[0:6] + fileinode + superblock[10:]
     #print(superblock)
     LibDisk.writeBlock(currentMount, 0, superblock)
     LibDisk.writeBlock(currentMount, 2, rootdirectory)
     fd = fdIndex
     fdIndex += 1
-    ResourceTable.update({fd:[name, 0, fileinode]})
+    ResourceTable.update({fd:[name, 0, int(fileinode)]})
     return fd
 
 def tfs_alloc(bitmap):
@@ -149,25 +153,74 @@ def tfs_close(FD):
     return 0
 #/* Writes buffer ‘buffer’ of size ‘size’, which represents an entire file’s contents, to the file described by ‘FD’.#
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
-def tfs_write(FD, buffer, size):
-    
-    ResourceTable[FD] = (ResourceTable[FD][0], 0, ResourceTable[FD][2])
+def tfs_write(FD, buffer):
+    #check if fd in resourcetable
+    #determine number of blocks required for len(buffer) bytes
+    #determine current number of blocks of file
+    #if current blocks > required blocks: free unneeded blocks
+    #else allocate necessary blocks (call alloc, rewrite bitmap to super block)
+    #chunk up buffer
+    #append next block address to end of each buffer chunk
+    #write each buffer chunk to the appropriate block
+    #update length in inode
+    global currentMount
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+    numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
+    inode = ResourceTable[FD][2]
+    fileInode = LibDisk.readBlock(currentMount, inode)
+    lenCurr = int(fileInode[4:10], 16) #parse hex string to decimal
+    datablock = int(fileInode[:4], 16)
+    numblocksCurr = math.ceil((lenCurr + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
+    diffblocks = numblocksCurr - numblocks
+    if diffblocks > 0:
+        print("dont worry about a thing")
+        #do some freeing
+    #blockList = tfs_get_block_list(datablock)
+
+
     return 0
+
+def tfs_free_block(block):
+    global currentMount
+    superblock = LibDisk.readBlock(currentMount, 0)
+    bitmap =  superblock[10:]
+    bitmapIndex = block // 4
+    bitmapOffset =  block % 4
+    current = bitmap[bitmapIndex]
+    binr = bin(int(current, 16))[2:].zfill(4)
+    binr = binr[:bitmapOffset] + '0' + binr[bitmapOffset+1:]
+    superblock = superblock[:10] + bitmap[:bitmapIndex] + hex(int(binr, 2))[2:].upper() + bitmap[bitmapIndex+1:]
+    LibDisk.writeBlock(currentMount, 0, superblock)
+
+def tfs_get_block_list(block):
+    global currentMount
+    data = LibDisk.readBlock(currentMount, block)
+    nextBlock = hex(data[BLOCKSIZE-4:], 16)
+    if nextBlock == 0 or nextBlock == 65535:
+        return [block]
+    ret = []
+    for val in tfs_get_block_list(nextBlock):
+        ret.append(val)
+    ret.append(block)
+    return ret
+
+
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
     inode = ResourceTable[FD][2]
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
-def tfs_readByte(FD, buffer):
-    byte = 0
-    index = ResourceTable[FD][1]
-    if (index >= fileSizeFromInode):
-        raise readOOBError
-    ResourceTable[FD][1] = index + 1
-    if index > 254:
-        
-    return byte
+#def tfs_readByte(FD, buffer):
+#    byte = 0
+#    index = ResourceTable[FD][1]
+#    if (index >= fileSizeFromInode):
+#        raise readOOBError
+#    ResourceTable[FD][1] = index + 1
+#    if index > 254:
+#
+#    return byte
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
@@ -178,6 +231,7 @@ if __name__ == '__main__':
     df = tfs_mount(DEFAULT_DISK_NAME)
     tfs_open("test.txt")
     tfs_open("7chars")
-    tfs_close(2)
+    #tfs_close(2)
+    tfs_write(1, "HELLO THERE")
     print(ResourceTable)
     tfs_unmount(df)

@@ -30,8 +30,8 @@ Data blocks:
         9-16: filename
         17-18: address of inode of file
         19-249: [repeats 10 bytes at a time]
-        254-255: address of next data block
+        254-255: address of next data block (FF if EOF)
 
     blocks 1+:
     0-253: data
-    254-255: address of next data block
+    254-255: address of next data block (FF if EOF)

@@ -28,5 +28,11 @@ class DiskFormatError(Exception):
         self.exitnumber = -5
         super().__init__(self.message)
 
+class TinyFSFileNotFoundError(Exception):
+    def __init__(self, fd):
+        self.message = "filename: " + fd + " is not and open file on the mounted tinyFS"
+        self.exitnumber = -6
+        super().__init__(self.message)
+
 
 
