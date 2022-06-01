@@ -3,9 +3,11 @@ from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
 DEFAULT_DISK_NAME = "tinyFSDisk"
 
-ResourceTable = {} #format {FD: (name, progress/index)}
+ResourceTable = {} #format {FD: [name, inode addr, index]}
 global currentMount
 currentMount = None
+global fdIndex
+fdIndex = 1
 
 # Makes an empty TinyFS file system of size nBytes on the file specified by ‘filename’.
 #This function should use the emulated disk library to open the specified file, and upon success, format the file to be mountable. 
@@ -15,8 +17,13 @@ def tfs_mkfs(filename, nBytes):
     disk = LibDisk.openDisk(filename, nBytes)
     for i in range(int(nBytes / LibDisk.BLOCKSIZE)):
         if i == 0:
-            LibDisk.writeBlock(disk, i, "5A00010001")
+            LibDisk.writeBlock(disk, i, "5A00010001E0")
+            #'5A':magic number, '0001':addr of root inode
+            #'0001':set root inode as active
+            #'E0':mark first 3 blocks as allocated in bitmap
         elif i == 1:
+            LibDisk.writeBlock(disk, i, "0002")
+        elif i == 2:
             LibDisk.writeBlock(disk, i, "01")
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
@@ -54,7 +61,54 @@ def tfs_unmount(diskFile):
 # Creates a dynamic resource table entry for the file (the structure that tracks open files, the internal file pointer, etc.),
 # and returns a file descriptor (integer) that can be used to reference this file while the filesystem is mounted. */
 def tfs_open(name):
-    ResourceTable.update({fd:(name, 0)})
+    #read bytes 1-2 of superblock for root inode address
+    #read root directory address from root inode bytes 0-1
+    #search root directory for 'name'
+    #if name not found, allocate inode and first data block for new file
+    #"open" file by updating superblock 3-4
+    #create resourcetable entry
+    #return fd of resource table entry
+    global currentMount
+    global fdIndex
+    namestuff = 8 - len(name)
+    if namestuff > 0:
+        for i in range(namestuff):
+            name += bytes.fromhex("00").decode("ASCII")
+        print(name)
+    superblock = LibDisk.readBlock(currentMount, 0)
+    rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
+    print(rootinode)
+    rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
+    print(rootdirectory)
+    if not rootdirectory.startswith("01"):
+        raise DiskFormatError(DEFAULT_DISK_NAME)
+    sliceStart = 18
+    sliceEnd = 34
+    while True:
+        entry = rootdirectory[sliceStart:sliceEnd]
+        if entry == "0000000000000000":
+            entry = "".join([hex(ord(x))[2:] for x in name])
+            numstuff = 16 - len(entry)
+            if numstuff > 0:
+                for i in range (numstuff):
+                    entry += "0"
+        else:
+            entry = bytes.fromhex(entry).decode("ASCII")
+        if entry == name:
+            break
+
+        print(entry)
+        sliceEnd += 20
+        sliceStart += 20
+        if sliceEnd > 500:
+            print(name + " not found")
+            break
+    fileinode = rootdirectory[sliceEnd:sliceEnd+4]
+    superblock = superblock[0:6] + fileinode + superblock[10:]
+    LibDisk.writeBlock(currentMount, 0, superblock)
+    fd = fdIndex
+    fdIndex += 1
+    ResourceTable.update({fd:[name, 0, fileinode]})
     return fd
 
 #/* Closes the file and removes dynamic resource table entry */
@@ -82,6 +136,9 @@ def tfs_seek(FD, offset):
     return 0
 
 if __name__ == '__main__':
-    #fs = tfs_mkfs(DEFAULT_DISK_NAME, 90)
+    #fs = tfs_mkfs(DEFAULT_DISK_NAME, 180)
     df = tfs_mount(DEFAULT_DISK_NAME)
-    print(df)
+    tfs_open("test.txt")
+    tfs_open("6chars")
+    #tfs_close(2)
+    print(ResourceTable)

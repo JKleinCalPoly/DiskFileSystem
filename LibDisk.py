@@ -1,7 +1,7 @@
 from os.path import exists
 from Errors import *
 
-BLOCKSIZE = 15
+BLOCKSIZE = 30
 #TODO: change back to 256 before submit/demo
 
 class diskFile:
@@ -25,7 +25,6 @@ def openDisk(filename, nBytes):
                 nBytes = int(len(disk.readline()) / (BLOCKSIZE * 2))
                 disk.close()
                 disk = open(filename, 'a+')
-                #TODO: how to find nbytes of previously created disk
             else:
                 raise diskNotFound (filename)
         elif (nBytes < 0):
@@ -55,7 +54,6 @@ def readBlock(disk, bNum):
             raise readOOBError(bNum)
         disk.fd.seek(bNum * BLOCKSIZE * 2)
         block = disk.fd.read(BLOCKSIZE * 2)
-        #TODO: python will read to EOF if BLOCKSIZE > chars in file, is this a problem?
     except FileNotFoundError as e:
         print(e)
         exit(-1)
