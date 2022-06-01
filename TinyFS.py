@@ -4,7 +4,7 @@ import LibDisk
 from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
 DEFAULT_DISK_NAME = "tinyFSDisk"
-MAX_DATA_IN_BLOCK = 254
+MAX_DATA_IN_BLOCK = BLOCKSIZE - 2
 BLOCK_ONE_METADATA_SIZE = 9
 
 ResourceTable = {} #format {FD: [name, index, inode addr]}
@@ -112,7 +112,7 @@ def tfs_open(name):
                 nextData, bitmap = tfs_alloc(bitmap)
                 rootdirectory = rootdirectory[:sliceStart] + entry + format("%04X" % nextInode) + rootdirectory[sliceEnd+4:]
                 superblock = superblock[:10] + bitmap
-                newInode = hex(nextData)[2:]
+                newInode = format("%04X" % nextData)
                 LibDisk.writeBlock(currentMount, nextInode, newInode)
                 newData = "00" + entry
                 LibDisk.writeBlock(currentMount, nextData, newData)
@@ -169,16 +169,47 @@ def tfs_write(FD, buffer):
     numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
     inode = ResourceTable[FD][2]
     fileInode = LibDisk.readBlock(currentMount, inode)
-    lenCurr = int(fileInode[4:10], 16) #parse hex string to decimal
+    #lenCurr = int(fileInode[4:10], 16) #parse hex string to decimal
     datablock = int(fileInode[:4], 16)
-    numblocksCurr = math.ceil((lenCurr + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
-    diffblocks = numblocksCurr - numblocks
-    if diffblocks > 0:
-        print("dont worry about a thing")
+    #numblocksCurr = math.ceil((lenCurr + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
+    #diffblocks = numblocksCurr - numblocks
+    #if diffblocks > 0:
+    #    print("dont worry about a thing")
         #do some freeing
-    #blockList = tfs_get_block_list(datablock)
-
-
+    blockList = tfs_get_block_list(datablock)
+    for i, block in enumerate(blockList):
+        if i != 0:
+            tfs_free_block(block)
+    i = 0
+    chunks = []
+    while i < len(buffer):
+        if i == 0:
+            chunks.append(buffer[i:MAX_DATA_IN_BLOCK-BLOCK_ONE_METADATA_SIZE])
+            i += MAX_DATA_IN_BLOCK-BLOCK_ONE_METADATA_SIZE
+        else:
+            chunks.append((buffer[i:i+MAX_DATA_IN_BLOCK]))
+            i += MAX_DATA_IN_BLOCK
+    superblock = LibDisk.readBlock(currentMount, 0)
+    bitmap = superblock[10:]
+    datablockData = LibDisk.readBlock(currentMount, datablock)
+    for i, chunk in enumerate(chunks):
+        chunk = "".join([hex(ord(x))[2:] for x in chunk])
+        if i == 0:
+            chunk = datablockData[:18] + chunk
+        if i == len(chunks) - 1:
+            while len(chunk) < (MAX_DATA_IN_BLOCK * 2):
+                chunk = chunk + '0'
+            print(chunk)
+            chunk = chunk + "FFFF"
+            print(chunk)
+            LibDisk.writeBlock(currentMount, datablock, chunk)
+        else:
+            nextblock, bitmap = tfs_alloc(bitmap)
+            nextCode = format("%04X" % nextblock)
+            chunk += nextCode
+            print(chunk)
+            LibDisk.writeBlock(currentMount, datablock, chunk)
+            datablock = nextblock
     return 0
 
 def tfs_free_block(block):
@@ -196,7 +227,7 @@ def tfs_free_block(block):
 def tfs_get_block_list(block):
     global currentMount
     data = LibDisk.readBlock(currentMount, block)
-    nextBlock = hex(data[BLOCKSIZE-4:], 16)
+    nextBlock = int(data[BLOCKSIZE-4:], 16)
     if nextBlock == 0 or nextBlock == 65535:
         return [block]
     ret = []
@@ -232,6 +263,7 @@ if __name__ == '__main__':
     tfs_open("test.txt")
     tfs_open("7chars")
     #tfs_close(2)
-    tfs_write(1, "HELLO THERE")
+    #tfs_write(1, "HELLO THERE")
+    tfs_write(1, "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE")
     print(ResourceTable)
     tfs_unmount(df)
