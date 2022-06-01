@@ -5,7 +5,7 @@ DEFAULT_DISK_NAME = "tinyFSDisk"
 MAX_DATA_IN_BLOCK = 254
 BLOCK_ONE_METADATA_SIZE = 9
 
-ResourceTable = {} #format {FD: [name, inode addr, index]}
+ResourceTable = {} #format {FD: [name, index, inode addr]}
 global currentMount
 currentMount = None
 global fdIndex
