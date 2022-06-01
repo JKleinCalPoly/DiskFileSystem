@@ -148,11 +148,12 @@ def tfs_close(FD):
 #/* Writes buffer ‘buffer’ of size ‘size’, which represents an entire file’s contents, to the file described by ‘FD’.#
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
 def tfs_write(FD, buffer, size):
-
+    
     ResourceTable[FD] = (ResourceTable[FD][0], 0, ResourceTable[FD][2])
     return 0
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
+    inode = ResourceTable[FD][2]
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
