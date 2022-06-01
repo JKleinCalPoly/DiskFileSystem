@@ -64,6 +64,7 @@ def readBlock(disk, bNum):
         exit(-1)
     return block
 
+
 # writeBlock() takes disk number ‘disk’ and logical block number ‘bNum’ and writes the content of the buffer
 # ‘block’ to that location. BLOCKSIZE bytes will be written from ‘block’ regardless of its actual size.
 # The disk must be open. Just as in readBlock(), writeBlock() must translate the logical block

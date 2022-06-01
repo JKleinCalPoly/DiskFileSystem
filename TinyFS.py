@@ -3,9 +3,10 @@ from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
 DEFAULT_DISK_NAME = "tinyFSDisk"
 
-ResourceTable = {} #format {FD: (name, progress/index)}
+ResourceTable = {} #format {FD: [name, progress/index, inodeAddress]}
 global currentMount
 currentMount = None
+global fdIndex = 1
 
 # Makes an empty TinyFS file system of size nBytes on the file specified by ‘filename’.
 #This function should use the emulated disk library to open the specified file, and upon success, format the file to be mountable. 
@@ -54,8 +55,11 @@ def tfs_unmount(diskFile):
 # Creates a dynamic resource table entry for the file (the structure that tracks open files, the internal file pointer, etc.),
 # and returns a file descriptor (integer) that can be used to reference this file while the filesystem is mounted. */
 def tfs_open(name):
+    global fdIndex
 
-    ResourceTable.update({fd:[name, 0]})
+    fd = fdIndex
+    ResourceTable.update({fd:[name, 0, inodeaddr]})
+    fdIndex = fdIndex + 1
     return fd
 
 #/* Closes the file and removes dynamic resource table entry */
@@ -69,7 +73,7 @@ def tfs_close(FD):
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
 def tfs_write(FD, buffer, size):
 
-    ResourceTable[FD] = (ResourceTable[FD][0], 0)
+    ResourceTable[FD] = (ResourceTable[FD][0], 0, ResourceTable[FD][2])
     return 0
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
@@ -82,11 +86,13 @@ def tfs_readByte(FD, buffer):
     if (index >= fileSizeFromInode):
         raise readOOBError
     ResourceTable[FD][1] = index + 1
+    if index > 254:
+        
     return byte
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
-    ResourceTable[FD] = (ResourceTable[FD][0], offset)
+    ResourceTable[FD] = (ResourceTable[FD][0], offset, ResourceTable[FD][2])
 
 if __name__ == '__main__':
     #fs = tfs_mkfs(DEFAULT_DISK_NAME, 90)
