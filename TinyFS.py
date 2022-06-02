@@ -92,7 +92,7 @@ def tfs_open(name):
         sliceEnd += 20
         sliceStart += 20
         if sliceEnd > 500:
-            print(name + " not found")
+            #print(name + " not found")
             break
 
     if entry != name:
@@ -124,7 +124,7 @@ def tfs_open(name):
                 break
 
     fileinode = rootdirectory[sliceEnd:sliceEnd+4]
-    print(fileinode)
+    #print(fileinode)
     superblock = superblock[0:6] + fileinode + superblock[10:]
     #print(superblock)
     LibDisk.writeBlock(currentMount, 0, superblock)
@@ -210,6 +210,7 @@ def tfs_write(FD, buffer):
             LibDisk.writeBlock(currentMount, datablock, chunk)
             LibDisk.writeBlock(currentMount, 0, superblock[:10] + bitmap)
             datablock = nextblock
+    ResourceTable.update({FD: [ResourceTable[FD][0], 0, ResourceTable[FD][2]]})
     return 0
 
 def tfs_free_block(block):
@@ -289,14 +290,18 @@ def tfs_seek(FD, offset):
 if __name__ == '__main__':
     fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
     df = tfs_mount(DEFAULT_DISK_NAME)
-    tfs_open("test.txt")
+    one = tfs_open("test.txt")
+    print(one)
     tfs_open("7chars")
     #tfs_close(2)
     str1 = "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE"
-    tfs_write(1, str1)
+    tfs_write(one, str1)
     for i in range(len(str1)):
-        print(tfs_readByte(1))
-    tfs_write(1, "HELLO THERE")
-    print(ResourceTable)
+        print(tfs_readByte(one))
+    tfs_close(one)
+    one = tfs_open("test.txt")
+    str2 = "HELLO THERE"
+    tfs_write(one, str2)
+    for i in range(len(str2)):
+        print(tfs_readByte(one))
     tfs_unmount(df)
-    print(bytes.fromhex("20").decode("ASCII"))
