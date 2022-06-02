@@ -131,7 +131,7 @@ def tfs_open(name):
     LibDisk.writeBlock(currentMount, 2, rootdirectory)
     fd = fdIndex
     fdIndex += 1
-    ResourceTable.update({fd:[name, 0, int(fileinode), True]})
+    ResourceTable.update({fd:[name, 0, int(fileinode), False]})
     return fd
 
 def tfs_alloc(bitmap):
@@ -322,12 +322,14 @@ def tfs_seek(FD, offset):
 
 #makes the file read only. If a file is RO, all tfs_write() and tfs_deleteFile()  functions that try to use it fail.
 def tfs_makeRO(FD):
+    ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], True)
 
 #makes the file read-write
 def tfs_makeRW(FD):
-
+    ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], False)
 #a function that can write one byte to an exact position inside the file.
 def tfs_writeByte(FD, data):
+    print("implement me")
 
 if __name__ == '__main__':
     fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
@@ -342,7 +344,11 @@ if __name__ == '__main__':
         print(tfs_readByte(one))
     tfs_close(one)
     one = tfs_open("test.txt")
+    tfs_makeRO(one)
     str2 = "HELLO THERE"
+    tfs_write(one, str2)
+    tfs_delete(one)
+    tfs_makeRW(one)
     tfs_write(one, str2)
     for i in range(len(str2)):
         print(tfs_readByte(one))
