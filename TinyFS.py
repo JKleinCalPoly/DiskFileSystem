@@ -239,6 +239,12 @@ def tfs_get_block_list(block):
 
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
+    #get inode from resource table
+    #get first data block from inode
+    #get data block list
+    #free all data blocks and inode from bitmap
+    #remove root directory entry
+    #remove resource table entry
     inode = ResourceTable[FD][2]
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
@@ -255,6 +261,8 @@ def tfs_delete(FD):
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
+    #check if offset in bounds for file
+    #set resource table offset
     ResourceTable[FD] = (ResourceTable[FD][0], offset, ResourceTable[FD][2])
 
 if __name__ == '__main__':
