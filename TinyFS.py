@@ -285,6 +285,10 @@ def tfs_readByte(FD):
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+    if offset < 0:
+        offset = 0
     #check if offset in bounds for file
     #set resource table offset
     ResourceTable[FD] = (ResourceTable[FD][0], offset, ResourceTable[FD][2])
