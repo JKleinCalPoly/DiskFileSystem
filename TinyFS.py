@@ -76,7 +76,7 @@ def tfs_open(name):
     if namestuff > 0:
         for i in range(namestuff):
             name += bytes.fromhex("00").decode("ASCII")
-        #print(name)
+        print(name)
     superblock = LibDisk.readBlock(currentMount, 0)
     rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
     rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
@@ -225,6 +225,7 @@ def tfs_free_block(block):
     superblock = superblock[:10] + bitmap[:bitmapIndex] + hex(int(binr, 2))[2:].upper() + bitmap[bitmapIndex+1:]
     LibDisk.writeBlock(currentMount, 0, superblock)
 
+
 def tfs_get_block_list(block):
     global currentMount
     data = LibDisk.readBlock(currentMount, block)
@@ -246,9 +247,39 @@ def tfs_delete(FD):
     #free all data blocks and inode from bitmap
     #remove root directory entry
     #remove resource table entry
-    inode = ResourceTable[FD][2]
-    #get address of first data block from inode
-    tfs_get_block_list(inode)
+    rtentry = ResourceTable[FD]
+    inode = rtentry[2]
+    fileInode = LibDisk.readBlock(currentMount, inode)
+    datablock = int(fileInode[:4], 16)
+    blockList = tfs_get_block_list(datablock)
+    blockList.append(inode)
+    for block in blockList:
+        tfs_free_block(block)
+    namestuff = 8 - len(rtentry[0])
+    if namestuff > 0:
+        for i in range(namestuff):
+            rtentry[0] += bytes.fromhex("00").decode("ASCII")
+
+    superblock = LibDisk.readBlock(currentMount, 0)
+    rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
+    rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
+    if not rootdirectory.startswith("01"):
+        raise DiskFormatError(DEFAULT_DISK_NAME)
+    sliceStart = 18
+    sliceEnd = 34
+    while True:
+        entry = rootdirectory[sliceStart:sliceEnd]
+        entry = bytes.fromhex(entry).decode("ASCII")
+        if entry == rtentry[0]:
+            break
+        sliceEnd += 20
+        sliceStart += 20
+        if sliceEnd > 500:
+            # print(name + " not found")
+            break
+    rootdirectory = rootdirectory[:sliceStart] + ("0"*16) + rootdirectory[sliceEnd:]
+    LibDisk.writeBlock(currentMount, int(rootinode[:4], 16), rootdirectory)
+    ResourceTable.pop(FD)
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
@@ -310,4 +341,7 @@ if __name__ == '__main__':
     tfs_write(one, str2)
     for i in range(len(str2)):
         print(tfs_readByte(one))
+    print(ResourceTable)
+    tfs_delete(one)
+    print(ResourceTable)
     tfs_unmount(df)
