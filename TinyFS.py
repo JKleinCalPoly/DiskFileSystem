@@ -251,7 +251,7 @@ def tfs_delete(FD):
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
-#def tfs_readByte(FD, buffer):
+def tfs_readByte(FD):
 #    byte = 0
 #    index = ResourceTable[FD][1]
 #    if (index >= fileSizeFromInode):
