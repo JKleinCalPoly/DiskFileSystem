@@ -167,6 +167,10 @@ def tfs_write(FD, buffer):
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
     #numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
+
+    if checkReadOnly(FD):
+        return -1
+
     inode = ResourceTable[FD][2]
     fileInode = LibDisk.readBlock(currentMount, inode)
     LibDisk.writeBlock(currentMount, inode, fileInode[:4] + format("%06X" % len(buffer)) + fileInode[10:])
@@ -241,6 +245,13 @@ def tfs_get_block_list(block):
 
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
+
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+
+    if (ResourceTable[FD][3]):
+        return -1
+
     #get inode from resource table
     #get first data block from inode
     #get data block list
