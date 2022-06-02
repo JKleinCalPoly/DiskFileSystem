@@ -168,7 +168,7 @@ def tfs_write(FD, buffer):
         raise TinyFSFileNotFoundError(FD)
     #numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
 
-    if checkReadOnly(FD):
+    if ResourceTable[FD][3]:
         return -1
 
     inode = ResourceTable[FD][2]
