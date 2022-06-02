@@ -34,5 +34,11 @@ class TinyFSFileNotFoundError(Exception):
         self.exitnumber = -6
         super().__init__(self.message)
 
+class TinyFSReadEOFError(Exception):
+    def __init__(self, fd):
+        self.message = "filename: " + str(fd) + " EOF reached"
+        self.exitnumber = -7
+        super().__init__(self.message)
+
 
 

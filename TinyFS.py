@@ -166,9 +166,10 @@ def tfs_write(FD, buffer):
     global currentMount
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
-    numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
+    #numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
     inode = ResourceTable[FD][2]
     fileInode = LibDisk.readBlock(currentMount, inode)
+    LibDisk.writeBlock(currentMount, inode, fileInode[:4] + format("%06X" % len(buffer)) + fileInode[10:])
     #lenCurr = int(fileInode[4:10], 16) #parse hex string to decimal
     datablock = int(fileInode[:4], 16)
     #numblocksCurr = math.ceil((lenCurr + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
@@ -233,7 +234,6 @@ def tfs_get_block_list(block):
     for val in tfs_get_block_list(nextBlock):
         ret.append(val)
     ret.append(block)
-    print(ret)
     return ret
 
 
@@ -249,15 +249,36 @@ def tfs_delete(FD):
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
-#def tfs_readByte(FD, buffer):
-#    byte = 0
-#    index = ResourceTable[FD][1]
-#    if (index >= fileSizeFromInode):
-#        raise readOOBError
-#    ResourceTable[FD][1] = index + 1
-#    if index > 254:
-#
-#    return byte
+def tfs_readByte(FD):
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+    inode = ResourceTable[FD][2]
+    fileInode = LibDisk.readBlock(currentMount, inode)
+    length = fileInode[5:10]
+    length = int(length, 16)
+    if ResourceTable[FD][1] >= length:
+        raise TinyFSReadEOFError(FD)
+    #calculate the block and block offset
+    bOffset = ResourceTable[FD][1]
+    bAddr = 0
+    cap = MAX_DATA_IN_BLOCK - BLOCK_ONE_METADATA_SIZE
+    while bOffset >= cap:
+        bOffset -= cap
+        if bAddr == 0:
+            cap = MAX_DATA_IN_BLOCK
+        bAddr += 1
+    if bAddr == 0:
+        bOffset += 9
+    datablock = int(fileInode[:4], 16)
+    blockList = tfs_get_block_list(datablock)
+    blockList.reverse()
+    data = LibDisk.readBlock(currentMount, blockList[bAddr])
+    #print(data)
+    data = data[bOffset * 2: (bOffset * 2) + 2]
+    #print(data + "\n")
+    ret = bytes.fromhex(data).decode("ASCII")
+    ResourceTable[FD][1] += 1
+    return ret
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
 def tfs_seek(FD, offset):
@@ -271,7 +292,11 @@ if __name__ == '__main__':
     tfs_open("test.txt")
     tfs_open("7chars")
     #tfs_close(2)
-    tfs_write(1, "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE")
+    str1 = "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE"
+    tfs_write(1, str1)
+    for i in range(len(str1)):
+        print(tfs_readByte(1))
     tfs_write(1, "HELLO THERE")
     print(ResourceTable)
     tfs_unmount(df)
+    print(bytes.fromhex("20").decode("ASCII"))
