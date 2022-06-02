@@ -177,6 +177,7 @@ def tfs_write(FD, buffer):
     #    print("dont worry about a thing")
         #do some freeing
     blockList = tfs_get_block_list(datablock)
+    blockList.reverse()
     for i, block in enumerate(blockList):
         if i != 0:
             tfs_free_block(block)
@@ -199,16 +200,14 @@ def tfs_write(FD, buffer):
         if i == len(chunks) - 1:
             while len(chunk) < (MAX_DATA_IN_BLOCK * 2):
                 chunk = chunk + '0'
-            print(chunk)
             chunk = chunk + "FFFF"
-            print(chunk)
             LibDisk.writeBlock(currentMount, datablock, chunk)
         else:
             nextblock, bitmap = tfs_alloc(bitmap)
             nextCode = format("%04X" % nextblock)
             chunk += nextCode
-            print(chunk)
             LibDisk.writeBlock(currentMount, datablock, chunk)
+            LibDisk.writeBlock(currentMount, 0, superblock[:10] + bitmap)
             datablock = nextblock
     return 0
 
@@ -227,13 +226,14 @@ def tfs_free_block(block):
 def tfs_get_block_list(block):
     global currentMount
     data = LibDisk.readBlock(currentMount, block)
-    nextBlock = int(data[BLOCKSIZE-4:], 16)
+    nextBlock = int(data[-4:], 16)
     if nextBlock == 0 or nextBlock == 65535:
         return [block]
     ret = []
     for val in tfs_get_block_list(nextBlock):
         ret.append(val)
     ret.append(block)
+    print(ret)
     return ret
 
 
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     tfs_open("test.txt")
     tfs_open("7chars")
     #tfs_close(2)
-    #tfs_write(1, "HELLO THERE")
     tfs_write(1, "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE")
+    tfs_write(1, "HELLO THERE")
     print(ResourceTable)
     tfs_unmount(df)
