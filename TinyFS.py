@@ -240,6 +240,8 @@ def tfs_get_block_list(block):
 #/* deletes a file and marks its blocks as free on disk. */
 def tfs_delete(FD):
     inode = ResourceTable[FD][2]
+    #get address of first data block from inode
+    tfs_get_block_list(inode)
     return 0
 #/* reads one byte from the file and copies it to ‘buffer’, using the current file pointer location and incrementing it by one upon success.
 # If the file pointer is already at the end of the file then tfs_readByte() should return an error and not increment the file pointer. */
