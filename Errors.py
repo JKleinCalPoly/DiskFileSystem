@@ -40,5 +40,11 @@ class TinyFSReadEOFError(Exception):
         self.exitnumber = -7
         super().__init__(self.message)
 
+class TinyFSNameError(Exception):
+    def __init__(self, filename):
+        self.message = "filename: " + filename + " is an illegal name"
+        self.exitnumber = -8
+        super().__init__(self.message)
+
 
 
