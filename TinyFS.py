@@ -169,6 +169,7 @@ def tfs_write(FD, buffer):
     #numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
 
     if ResourceTable[FD][3]:
+        print("You can't write to a RO file!")
         return -1
 
     inode = ResourceTable[FD][2]
@@ -250,6 +251,7 @@ def tfs_delete(FD):
         raise TinyFSFileNotFoundError(FD)
 
     if (ResourceTable[FD][3]):
+        print("You can't delete a RO file!")
         return -1
 
     #get inode from resource table
@@ -350,8 +352,34 @@ def tfs_makeRW(FD):
         raise TinyFSFileNotFoundError(FD)
     ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], False)
 #a function that can write one byte to an exact position inside the file.
-def tfs_writeByte(FD, data):
-    print("implement me")
+def tfs_writeByte(FD, byte):
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+    inode = ResourceTable[FD][2]
+    fileInode = LibDisk.readBlock(currentMount, inode)
+    length = fileInode[5:10]
+    length = int(length, 16)
+    if ResourceTable[FD][1] >= length:
+        raise TinyFSReadEOFError(FD)
+    # calculate the block and block offset
+    bOffset = ResourceTable[FD][1]
+    bAddr = 0
+    cap = MAX_DATA_IN_BLOCK - BLOCK_ONE_METADATA_SIZE
+    while bOffset >= cap:
+        bOffset -= cap
+        if bAddr == 0:
+            cap = MAX_DATA_IN_BLOCK
+        bAddr += 1
+    if bAddr == 0:
+        bOffset += 9
+    datablock = int(fileInode[:4], 16)
+    blockList = tfs_get_block_list(datablock)
+    blockList.reverse()
+    data = LibDisk.readBlock(currentMount, blockList[bAddr])
+    data = data[:bOffset * 2] + format("%02X" % ord(byte[0])) +data[(bOffset * 2) + 2:]
+    LibDisk.writeBlock(currentMount, blockList[bAddr], data)
+    ResourceTable[FD][1] += 1
+
 
 if __name__ == '__main__':
     fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
@@ -367,12 +395,14 @@ if __name__ == '__main__':
     tfs_close(one)
     one = tfs_open("test.txt")
     tfs_makeRO(one)
-    str2 = "HELLO THERE"
+    str2 = "different string"
     tfs_write(one, str2)
     tfs_delete(one)
     tfs_makeRW(one)
     tfs_write(one, str2)
     for i in range(len(str2)):
+        if i == 2:
+            tfs_writeByte(one, "B")
         print(tfs_readByte(one))
     print(ResourceTable)
     tfs_delete(one)
