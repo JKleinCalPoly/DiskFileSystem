@@ -1,19 +1,19 @@
 Elias Wilson Jordan Klein
 
-Our file system works as expected in all areas 
-
-Disk stores blocks of BLOCKSIZE*2 characters, each character representing 4 bits in hex
+Our file system works as expected in all areas
 
 We chose extra features set B and D. Set B involves renaming and listing all files, which we demo working as expected,
 Set D involves Read only files and writing single bytes, which we also show working in our demo. 
 
 Our file system limitation is its maximum of 2014 blocks as well as our limit of 8 charecter file names. 
 
-Below are implementation details about how structures where orginized. 
+Below are implementation details about how structures where orginized.
+
+Disk stores blocks of BLOCKSIZE*2 characters, each character representing 4 bits in hex, meaning 2 characters represent one byte
 
 Superblock:
 0: 0x5A (magic number)
-1-2: 0x0001 (block of root inode)w
+1-2: 0x0001 (block of root inode)
 3-4: block address of inode of currently open file (0x0001 if "nothing" currently open)
 5-255: bitmap of free blocks - limits max # of blocks to 8*251 = 2014 blocks
 
@@ -46,7 +46,3 @@ Data blocks:
     blocks 1+:
     0-253: data
     254-255: address of next data block (FF if EOF)
-
-Extra feature choices:
-B: tfs_rename() and tfs_readdir()
-D: tfs_makeRO(), tfs_makeRW(), tfs_writeByte()
