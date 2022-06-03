@@ -1,5 +1,3 @@
-import math
-
 import LibDisk
 from LibDisk import *
 DEFAULT_DISK_SIZE = 10240
@@ -26,9 +24,9 @@ def tfs_mkfs(filename, nBytes):
             #'0001':set root inode as active
             #'E0':mark first 3 blocks as allocated in bitmap
         elif i == 1:
-            LibDisk.writeBlock(disk, i, "0002")
+            LibDisk.writeBlock(disk, i, "0002") #address of first root directory data block
         elif i == 2:
-            LibDisk.writeBlock(disk, i, "01")
+            LibDisk.writeBlock(disk, i, "01") #root directory is a directory
         else:
             LibDisk.writeBlock(disk, i, "00" * LibDisk.BLOCKSIZE)
     LibDisk.closeDisk(disk)
@@ -40,7 +38,7 @@ def tfs_mkfs(filename, nBytes):
 # Only one file system may be mounted at a time. Use tfs_unmount to cleanly unmount the currently mounted file system.
 # Must return a specified success/error code. */
 def tfs_mount(filename):
-    global currentMount # replace w/ filename of current filesystem
+    global currentMount
     try:
         if (currentMount != None):
             tfs_unmount(currentMount)
@@ -72,11 +70,12 @@ def tfs_open(name):
     #return fd of resource table entry
     global currentMount
     global fdIndex
+    if(len(name) > 8):
+        raise TinyFSNameError(name)
     namestuff = 8 - len(name)
     if namestuff > 0:
         for i in range(namestuff):
             name += bytes.fromhex("00").decode("ASCII")
-        print(name)
     superblock = LibDisk.readBlock(currentMount, 0)
     rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
     rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
@@ -84,16 +83,13 @@ def tfs_open(name):
         raise DiskFormatError(DEFAULT_DISK_NAME)
     sliceStart = 18
     sliceEnd = 34
-    while True:
+    while sliceEnd <= 500:
         entry = rootdirectory[sliceStart:sliceEnd]
         entry = bytes.fromhex(entry).decode("ASCII")
         if entry == name:
             break
         sliceEnd += 20
         sliceStart += 20
-        if sliceEnd > 500:
-            #print(name + " not found")
-            break
 
     if entry != name:
         sliceStart = 18
@@ -124,9 +120,7 @@ def tfs_open(name):
                 break
 
     fileinode = rootdirectory[sliceEnd:sliceEnd+4]
-    #print(fileinode)
     superblock = superblock[0:6] + fileinode + superblock[10:]
-    #print(superblock)
     LibDisk.writeBlock(currentMount, 0, superblock)
     LibDisk.writeBlock(currentMount, 2, rootdirectory)
     fd = fdIndex
@@ -134,11 +128,11 @@ def tfs_open(name):
     ResourceTable.update({fd:[name, 0, int(fileinode), False]})
     return fd
 
+#read the bitmap, find the first unallocated block. update the bitmap and return its position
 def tfs_alloc(bitmap):
     for i, c in enumerate(bitmap):
         if c != 'F':
             binr = bin(int(c, 16))[2:].zfill(4)
-            #print(binr)
             for j, b in enumerate(binr):
                 if b == '0':
                     binr = binr[:j] + '1' + binr[j + 1:]
@@ -151,7 +145,8 @@ def tfs_close(FD):
     else:
         raise FileNotFoundError(FD)
     return 0
-#/* Writes buffer ‘buffer’ of size ‘size’, which represents an entire file’s contents, to the file described by ‘FD’.#
+
+#/* Writes data ‘buffer’, which represents an entire file’s contents, to the file described by ‘FD’.
 # Sets the file pointer to 0 (the start of file) when done. Returns success/error codes. */
 def tfs_write(FD, buffer):
     #check if fd in resourcetable
@@ -166,7 +161,6 @@ def tfs_write(FD, buffer):
     global currentMount
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
-    #numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
 
     if ResourceTable[FD][3]:
         print("You can't write to a RO file!")
@@ -212,6 +206,7 @@ def tfs_write(FD, buffer):
     ResourceTable.update({FD: [ResourceTable[FD][0], 0, ResourceTable[FD][2], ResourceTable[FD][3]]})
     return 0
 
+#marks a block as free in the bitmap.
 def tfs_free_block(block):
     global currentMount
     superblock = LibDisk.readBlock(currentMount, 0)
@@ -224,7 +219,7 @@ def tfs_free_block(block):
     superblock = superblock[:10] + bitmap[:bitmapIndex] + hex(int(binr, 2))[2:].upper() + bitmap[bitmapIndex+1:]
     LibDisk.writeBlock(currentMount, 0, superblock)
 
-
+#gets a list of blocks that
 def tfs_get_block_list(block):
     global currentMount
     data = LibDisk.readBlock(currentMount, block)
@@ -455,7 +450,7 @@ if __name__ == '__main__':
     tfs_open("7chars")
     str1 = "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE"
     tfs_write(one, str1)
-    for i in range(len(str1) - 1):
+    for i in range(len(str1)):
         print(tfs_readByte(one))
     tfs_close(one)
     one = tfs_open("test.txt")
