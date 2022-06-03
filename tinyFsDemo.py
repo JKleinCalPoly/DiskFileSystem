@@ -43,9 +43,10 @@ if __name__ == '__main__':
     print("\n")
 
     print("we can combine this with seek to print the byte at a certain point, here we will print the tenth byte in the file")
-    tfs_seek(first_file, 0)
+    tfs_seek(first_file, 9)
     print(tfs_readByte(first_file))
     tfs_close(first_file)
+
 
 
 
