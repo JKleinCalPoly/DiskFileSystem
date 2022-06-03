@@ -55,6 +55,9 @@ def tfs_mount(filename):
 
 def tfs_unmount(diskFile):
     LibDisk.closeDisk(diskFile)
+    ResourceTable.clear()
+    global fdIndex
+    fdIndex = 1
     return 0
 
 #/* Opens a file for reading and writing on the currently mounted file system.#
@@ -310,9 +313,7 @@ def tfs_readByte(FD):
     blockList = tfs_get_block_list(datablock)
     blockList.reverse()
     data = LibDisk.readBlock(currentMount, blockList[bAddr])
-    #print(data)
     data = data[bOffset * 2: (bOffset * 2) + 2]
-    #print(data + "\n")
     ret = bytes.fromhex(data).decode("ASCII")
     ResourceTable.update({FD: [ResourceTable[FD][0], ResourceTable[FD][1] + 1, ResourceTable[FD][2], ResourceTable[FD][3]]})
     return ret
@@ -325,7 +326,6 @@ def tfs_seek(FD, offset):
         offset += ResourceTable[FD][1] 
         if offset < 0:
             offset = 0
-
     #check if offset in bounds for file
     #set resource table offset
     ResourceTable[FD] = (ResourceTable[FD][0], offset, ResourceTable[FD][2], ResourceTable[FD][3])

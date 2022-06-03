@@ -18,40 +18,108 @@ tfs_rename"""
 
 if __name__ == '__main__':
 
-    disk_store = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE)
-    file_system = tfs_mount(DEFAULT_DISK_NAME)
-    first_file = tfs_open("frst.txt")
-    input_string = "filler data for first file"
+    disk_store = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE) #diskFile object returned by LibDisk.open()
+    file_system = tfs_mount(DEFAULT_DISK_NAME) #same diskFile object, but opened
     print("This is our SuperBlock at initialization")
     print(LibDisk.readBlock(file_system, 0))
 
-    print("\nUpon opening a file it is added to the resource table shown below in the format {FD: [file name, index into file, file inode block address, Read only boolean]}")
+    try:
+        try_file = tfs_open("name_too_long.txt")
+    except TinyFSNameError as e:
+        print(e.message)
+
+    a_file = tfs_open("a.txt")
+    b_file = tfs_open("b.txt")
+
     print(ResourceTable)
-    print("The '3' in the resource table represents the index 3 block, which will contain that file's inode, which we use to find the first data block for the file \n")
-    
-    print("The contents of that file before being written to look like this, with the hexadecimal values towards the begining storig the name of the file")
-    print(LibDisk.readBlock(file_system, 4))
-    print("Next if we write to this file we will add data, in this case we will add the text \"filler data for first file\" which will make the data block look like")
-    tfs_write(first_file, input_string)
 
-    print(LibDisk.readBlock(file_system, 4))
-
-    print("we can then use tfs_readbyte to read the file which results in")
-
-    for i in range(len(input_string)):
-        print(tfs_readByte(first_file), end = "")
+    in1 = "filler data for first file"
+    tfs_write(a_file, in1)
+    for i in range(len(in1)):
+        print(tfs_readByte(a_file), end="")
     print("\n")
 
-    print("we can combine this with seek to print the byte at a certain point, here we will print the tenth byte in the file")
-    tfs_seek(first_file, 9)
-    print(tfs_readByte(first_file))
-    tfs_close(first_file)
+    in2 = "different data for a different file"
+    tfs_write(b_file, in2)
+    for i in range(len(in2)):
+        print(tfs_readByte(b_file), end="")
+    print("\n")
+    tfs_close(a_file)
+    try:
+        for i in range(len(in1)):
+            print(tfs_readByte(a_file), end="")
+    except TinyFSFileNotFoundError as e:
+        print(e.message)
 
+    a_file = tfs_open("a.txt")
+    for i in range(len(in1)):
+        print(tfs_readByte(a_file), end="")
+    print("\n")
+    print(ResourceTable)
 
+    tfs_unmount(file_system)
+    print("remounting, clearing resource table")
+    file_system = tfs_mount(DEFAULT_DISK_NAME)
+    print(ResourceTable)
+    a_file = tfs_open("a.txt")
+    print(ResourceTable)
+    for i in range(len(in1)):
+        print(tfs_readByte(a_file), end="")
+    print("\n\n")
 
+    print(LibDisk.readBlock(file_system, 0))
 
+    in1 = "THIS IS A LOT MORE TEXT SO THAT WE HIT THE NEXT BLOCK AND HAVE TO ALLOCATE AND PAGE. I DONT KNOW WHAT ELSE TO PUT SO HAVE SOME 7s. ACTUALY I GUESS THAT DOESN'T WORK VERY WELL SINCE I'D LIKE TO BE ABLE TO SEE IF ANY CHARACTERS ARE MISSING SO I KEPT WRITING. THIS SHOULD DEFINITELY BE IN THE NEXT BLOCK BY NOW SO I'LL STOP."
+    tfs_write(a_file, in1)
+    for i in range(len(in1)):
+        print(tfs_readByte(a_file), end="")
+    print("\n")
+    print(LibDisk.readBlock(file_system, 0))
+
+    tfs_readdir()
+    b_file = tfs_open("b.txt")
+    tfs_delete(b_file)
+
+    try:
+        for i in range(len(in2)):
+            print(tfs_readByte(b_file), end="")
+    except TinyFSFileNotFoundError as e:
+        print(e.message)
+    tfs_readdir()
+    print("\n")
+
+    tfs_seek(a_file, 0)
+    for i in range(15):
+        if i == 4 or i == 7:
+            tfs_writeByte(a_file, "_")
+            tfs_seek(a_file, -1)
+        print(tfs_readByte(a_file), end="")
+    print("")
+
+    print("skipping ahead 15 characters")
+    tfs_seek(a_file, 30)
+    for i in range(15):
+        print(tfs_readByte(a_file), end="")
+    print("\n")
     
+    c_file = tfs_open("c.txt")
+    in3 = "some sample text for a 3rd file"
+    tfs_write(c_file, in3)
+    for i in range(len(in3)):
+        print(tfs_readByte(c_file), end="")
+    print("\n")
+    tfs_makeRO(c_file)
+    tfs_write(c_file, "new data")
+    tfs_makeRW(c_file)
 
+    in4 = "new data"
+    tfs_write(c_file, in4)
+    print(ResourceTable[c_file])
+    for i in range(len(in4)):
+        print(tfs_readByte(c_file), end="")
+    print("\n")
 
-    
-
+    tfs_readdir()
+    tfs_rename(c_file, "c2.img")
+    print("changing name:")
+    tfs_readdir()

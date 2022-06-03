@@ -30,7 +30,7 @@ class DiskFormatError(Exception):
 
 class TinyFSFileNotFoundError(Exception):
     def __init__(self, fd):
-        self.message = "filename: " + str(fd) + " is not and open file on the mounted tinyFS"
+        self.message = "filename: " + str(fd) + " is not an open file on the mounted tinyFS"
         self.exitnumber = -6
         super().__init__(self.message)
 
@@ -42,7 +42,7 @@ class TinyFSReadEOFError(Exception):
 
 class TinyFSNameError(Exception):
     def __init__(self, filename):
-        self.message = "filename: " + filename + " is an illegal name"
+        self.message = "filename: " + filename + " is an illegal name with more than 8 characters"
         self.exitnumber = -8
         super().__init__(self.message)
 
