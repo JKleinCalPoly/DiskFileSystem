@@ -324,7 +324,7 @@ def tfs_readByte(FD):
     data = data[bOffset * 2: (bOffset * 2) + 2]
     #print(data + "\n")
     ret = bytes.fromhex(data).decode("ASCII")
-    ResourceTable[FD][1] += 1
+    ResourceTable.update({FD: [ResourceTable[FD][0], ResourceTable[FD][1] + 1, ResourceTable[FD][2], ResourceTable[FD][3]]})
     return ret
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
@@ -351,6 +351,7 @@ def tfs_makeRW(FD):
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
     ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], False)
+
 #a function that can write one byte to an exact position inside the file.
 def tfs_writeByte(FD, byte):
     if FD not in ResourceTable:
@@ -380,6 +381,32 @@ def tfs_writeByte(FD, byte):
     LibDisk.writeBlock(currentMount, blockList[bAddr], data)
     ResourceTable[FD][1] += 1
 
+#Renames a file.  New name should be passed in.
+def tfs_rename(FD, newName):
+    print("implement me")
+
+#prints the name of all files on the file system
+def tfs_readdir():
+    superblock = LibDisk.readBlock(currentMount, 0)
+    rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
+    rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
+    if not rootdirectory.startswith("01"):
+        raise DiskFormatError(DEFAULT_DISK_NAME)
+    sliceStart = 18
+    sliceEnd = 34
+    while sliceEnd < 500:
+        entry = rootdirectory[sliceStart:sliceEnd]
+        prnt = False
+        for c in entry:
+            if c != '0':
+                prnt = True
+        entry = bytes.fromhex(entry).decode("ASCII")
+
+        if prnt:
+            print(entry)
+        sliceEnd += 20
+        sliceStart += 20
+
 
 if __name__ == '__main__':
     fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
@@ -390,7 +417,7 @@ if __name__ == '__main__':
     #tfs_close(2)
     str1 = "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE"
     tfs_write(one, str1)
-    for i in range(len(str1)):
+    for i in range(len(str1) - 1):
         print(tfs_readByte(one))
     tfs_close(one)
     one = tfs_open("test.txt")
@@ -403,8 +430,10 @@ if __name__ == '__main__':
     for i in range(len(str2)):
         if i == 2:
             tfs_writeByte(one, "B")
+            tfs_seek(one, -1)
         print(tfs_readByte(one))
     print(ResourceTable)
     tfs_delete(one)
     print(ResourceTable)
+    tfs_readdir()
     tfs_unmount(df)
