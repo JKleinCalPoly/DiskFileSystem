@@ -175,13 +175,7 @@ def tfs_write(FD, buffer):
     inode = ResourceTable[FD][2]
     fileInode = LibDisk.readBlock(currentMount, inode)
     LibDisk.writeBlock(currentMount, inode, fileInode[:4] + format("%06X" % len(buffer)) + fileInode[10:])
-    #lenCurr = int(fileInode[4:10], 16) #parse hex string to decimal
     datablock = int(fileInode[:4], 16)
-    #numblocksCurr = math.ceil((lenCurr + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
-    #diffblocks = numblocksCurr - numblocks
-    #if diffblocks > 0:
-    #    print("dont worry about a thing")
-        #do some freeing
     blockList = tfs_get_block_list(datablock)
     blockList.reverse()
     for i, block in enumerate(blockList):
@@ -282,6 +276,7 @@ def tfs_delete(FD):
     sliceEnd = 34
     while True:
         entry = rootdirectory[sliceStart:sliceEnd]
+
         entry = bytes.fromhex(entry).decode("ASCII")
         if entry == rtentry[0]:
             break
@@ -383,7 +378,52 @@ def tfs_writeByte(FD, byte):
 
 #Renames a file.  New name should be passed in.
 def tfs_rename(FD, newName):
-    print("implement me")
+    #generate coded newName
+    #get name of fd from resourcetable
+    #find name in root directory and replace with coded newName
+    #get inode of fd
+    #get first data block of fd
+    #replace filename in data block with coded newName
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+    namestuff = 8 - len(newName)
+    if namestuff > 0:
+        for i in range(namestuff):
+            newName += bytes.fromhex("00").decode("ASCII")
+    print(newName)
+    superblock = LibDisk.readBlock(currentMount, 0)
+    rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
+    rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
+    if not rootdirectory.startswith("01"):
+        raise DiskFormatError(DEFAULT_DISK_NAME)
+    sliceStart = 18
+    sliceEnd = 34
+    while sliceEnd <= 500:
+        entry = rootdirectory[sliceStart:sliceEnd]
+        entry = bytes.fromhex(entry).decode("ASCII")
+        if entry == ResourceTable[FD][0]:
+            break
+        sliceEnd += 20
+        sliceStart += 20
+    if entry != ResourceTable[FD][0]:
+        raise TinyFSFileNotFoundError(FD)
+
+    ResourceTable.update({FD: [newName, ResourceTable[FD][1], ResourceTable[FD][2], ResourceTable[FD][3]]})
+    inode = ResourceTable[FD][2]
+    fileInode = LibDisk.readBlock(currentMount, inode)
+    datablockAddr = int(fileInode[:4], 16)
+    datablock = LibDisk.readBlock(currentMount, datablockAddr)
+    newName = "".join([hex(ord(x))[2:] for x in newName])
+    numstuff = 16 - len(newName)
+    if numstuff > 0:
+        for i in range(numstuff):
+            newName += "0"
+    datablock = datablock[:2] + newName + datablock[18:]
+    LibDisk.writeBlock(currentMount, datablockAddr, datablock)
+
+    #print(entry)
+    rootdirectory = rootdirectory[:sliceStart] + newName + rootdirectory[sliceEnd:]
+    LibDisk.writeBlock(currentMount, int(rootinode[:4], 16), rootdirectory)
 
 #prints the name of all files on the file system
 def tfs_readdir():
@@ -401,7 +441,6 @@ def tfs_readdir():
             if c != '0':
                 prnt = True
         entry = bytes.fromhex(entry).decode("ASCII")
-
         if prnt:
             print(entry)
         sliceEnd += 20
@@ -421,6 +460,8 @@ if __name__ == '__main__':
         print(tfs_readByte(one))
     tfs_close(one)
     one = tfs_open("test.txt")
+    for i in range(len(str1)):
+        print(tfs_readByte(one))
     tfs_makeRO(one)
     str2 = "different string"
     tfs_write(one, str2)
@@ -433,7 +474,9 @@ if __name__ == '__main__':
             tfs_seek(one, -1)
         print(tfs_readByte(one))
     print(ResourceTable)
-    tfs_delete(one)
+    tfs_rename(one, "newName")
+    print(ResourceTable)
+    tfs_delete(2)
     print(ResourceTable)
     tfs_readdir()
     tfs_unmount(df)
