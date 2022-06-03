@@ -330,17 +330,24 @@ def tfs_seek(FD, offset):
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
     if offset < 0:
-        offset = 0
+        offset += ResourceTable[FD][1] 
+        if offset < 0:
+            offset = 0
+
     #check if offset in bounds for file
     #set resource table offset
     ResourceTable[FD] = (ResourceTable[FD][0], offset, ResourceTable[FD][2], ResourceTable[FD][3])
 
 #makes the file read only. If a file is RO, all tfs_write() and tfs_deleteFile()  functions that try to use it fail.
 def tfs_makeRO(FD):
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
     ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], True)
 
 #makes the file read-write
 def tfs_makeRW(FD):
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
     ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], False)
 #a function that can write one byte to an exact position inside the file.
 def tfs_writeByte(FD, data):
