@@ -169,6 +169,7 @@ def tfs_write(FD, buffer):
     #numblocks = math.ceil((len(buffer) + BLOCK_ONE_METADATA_SIZE) / MAX_DATA_IN_BLOCK)
 
     if ResourceTable[FD][3]:
+        print("You can't write to a RO file!")
         return -1
 
     inode = ResourceTable[FD][2]
@@ -250,6 +251,7 @@ def tfs_delete(FD):
         raise TinyFSFileNotFoundError(FD)
 
     if (ResourceTable[FD][3]):
+        print("You can't delete a RO file!")
         return -1
 
     #get inode from resource table
@@ -322,7 +324,7 @@ def tfs_readByte(FD):
     data = data[bOffset * 2: (bOffset * 2) + 2]
     #print(data + "\n")
     ret = bytes.fromhex(data).decode("ASCII")
-    ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1] + 1, ResourceTable[FD][2], ResourceTable[FD][3])
+    ResourceTable.update({FD: [ResourceTable[FD][0], ResourceTable[FD][1] + 1, ResourceTable[FD][2], ResourceTable[FD][3]]})
     return ret
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
@@ -349,9 +351,62 @@ def tfs_makeRW(FD):
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
     ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1], ResourceTable[FD][2], False)
+
 #a function that can write one byte to an exact position inside the file.
-def tfs_writeByte(FD, data):
+def tfs_writeByte(FD, byte):
+    if FD not in ResourceTable:
+        raise TinyFSFileNotFoundError(FD)
+    inode = ResourceTable[FD][2]
+    fileInode = LibDisk.readBlock(currentMount, inode)
+    length = fileInode[5:10]
+    length = int(length, 16)
+    if ResourceTable[FD][1] >= length:
+        raise TinyFSReadEOFError(FD)
+    # calculate the block and block offset
+    bOffset = ResourceTable[FD][1]
+    bAddr = 0
+    cap = MAX_DATA_IN_BLOCK - BLOCK_ONE_METADATA_SIZE
+    while bOffset >= cap:
+        bOffset -= cap
+        if bAddr == 0:
+            cap = MAX_DATA_IN_BLOCK
+        bAddr += 1
+    if bAddr == 0:
+        bOffset += 9
+    datablock = int(fileInode[:4], 16)
+    blockList = tfs_get_block_list(datablock)
+    blockList.reverse()
+    data = LibDisk.readBlock(currentMount, blockList[bAddr])
+    data = data[:bOffset * 2] + format("%02X" % ord(byte[0])) +data[(bOffset * 2) + 2:]
+    LibDisk.writeBlock(currentMount, blockList[bAddr], data)
+    ResourceTable[FD][1] += 1
+
+#Renames a file.  New name should be passed in.
+def tfs_rename(FD, newName):
     print("implement me")
+
+#prints the name of all files on the file system
+def tfs_readdir():
+    superblock = LibDisk.readBlock(currentMount, 0)
+    rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
+    rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
+    if not rootdirectory.startswith("01"):
+        raise DiskFormatError(DEFAULT_DISK_NAME)
+    sliceStart = 18
+    sliceEnd = 34
+    while sliceEnd < 500:
+        entry = rootdirectory[sliceStart:sliceEnd]
+        prnt = False
+        for c in entry:
+            if c != '0':
+                prnt = True
+        entry = bytes.fromhex(entry).decode("ASCII")
+
+        if prnt:
+            print(entry)
+        sliceEnd += 20
+        sliceStart += 20
+
 
 if __name__ == '__main__':
     fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
@@ -362,22 +417,23 @@ if __name__ == '__main__':
     #tfs_close(2)
     str1 = "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE"
     tfs_write(one, str1)
-    for i in range(len(str1)):
+    for i in range(len(str1) - 1):
         print(tfs_readByte(one))
     tfs_close(one)
     one = tfs_open("test.txt")
     tfs_makeRO(one)
-    str2 = "HELLO THERE"
+    str2 = "different string"
     tfs_write(one, str2)
     tfs_delete(one)
     tfs_makeRW(one)
     tfs_write(one, str2)
     for i in range(len(str2)):
-        print(i)
-        if i == 4:
-            tfs_seek(one, -3)
+        if i == 2:
+            tfs_writeByte(one, "B")
+            tfs_seek(one, -1)
         print(tfs_readByte(one))
     print(ResourceTable)
     tfs_delete(one)
     print(ResourceTable)
+    tfs_readdir()
     tfs_unmount(df)

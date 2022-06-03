@@ -35,3 +35,7 @@ Data blocks:
     blocks 1+:
     0-253: data
     254-255: address of next data block (FF if EOF)
+
+Extra feature choices:
+B: tfs_rename() and tfs_readdir()
+D: tfs_makeRO(), tfs_makeRW(), tfs_writeByte()
