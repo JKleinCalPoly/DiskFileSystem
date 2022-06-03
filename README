@@ -11,6 +11,8 @@ Below are implementation details about how structures where orginized.
 
 Disk stores blocks of BLOCKSIZE*2 characters, each character representing 4 bits in hex, meaning 2 characters represent one byte
 
+Note that assignment described c conventions (such as passing in a return buffer) ignored. Used python conventions (return a string)
+
 Superblock:
 0: 0x5A (magic number)
 1-2: 0x0001 (block of root inode)
@@ -18,8 +20,8 @@ Superblock:
 5-255: bitmap of free blocks - limits max # of blocks to 8*251 = 2014 blocks
 
 Addressing:
-max of 2014 (2^11) blocks requires 11 bits to index so addresses are all 2 bytes
-stores first block address of file, each data block's last 2 bytes are dedicated to the address of the next block in the file.
+max of 2014 blocks requires 11 bits to index so addresses are all 2 bytes
+inode stores first data block address of file, each data block's last 2 bytes are dedicated to the address of the data next block in the file.
 EOF represented by address 0xFFFF, which is always out of range. (0x07ED is the maximum address of our FS)
 
 Inodes:
@@ -32,7 +34,6 @@ Data blocks:
     block 0:
     0: 0-File or 1-Directory
     1-8: filename
-    ~~any additional metadata here~~
     File:
         9-253: data
         254-255: address of next data block
@@ -40,7 +41,7 @@ Data blocks:
     Directory:
         9-16: entry filename
         17-18: address of inode of file
-        19-249: [repeats 10 bytes at a time]
+        19-249: [repeats 10 bytes at a time] (24 max)
         254-255: address of next data block (FF if EOF)
 
     blocks 1+:

@@ -1,21 +1,6 @@
 import TinyFS 
 from TinyFS import *
 
-"""tfs_mkfs
-tfs_mount
-tfs_unmount
-tfs_open
-tfs_close
-tfs_write
-tfs_delete
-tfs_readByte
-tfs_seek
-tfs_makeRO
-tfs_makeRW
-tfs_writeByte
-tfs_readdir
-tfs_rename"""
-
 if __name__ == '__main__':
 
     disk_store = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE) #diskFile object returned by LibDisk.open()
