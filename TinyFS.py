@@ -384,13 +384,15 @@ def tfs_rename(FD, newName):
     #get inode of fd
     #get first data block of fd
     #replace filename in data block with coded newName
+    if ResourceTable[FD][3]:
+        print("You can't write to a RO file!")
+        return -1
     if FD not in ResourceTable:
         raise TinyFSFileNotFoundError(FD)
     namestuff = 8 - len(newName)
     if namestuff > 0:
         for i in range(namestuff):
             newName += bytes.fromhex("00").decode("ASCII")
-    print(newName)
     superblock = LibDisk.readBlock(currentMount, 0)
     rootinode = LibDisk.readBlock(currentMount, int(superblock[2:6], 16))
     rootdirectory = LibDisk.readBlock(currentMount, int(rootinode[:4], 16))
@@ -420,8 +422,6 @@ def tfs_rename(FD, newName):
             newName += "0"
     datablock = datablock[:2] + newName + datablock[18:]
     LibDisk.writeBlock(currentMount, datablockAddr, datablock)
-
-    #print(entry)
     rootdirectory = rootdirectory[:sliceStart] + newName + rootdirectory[sliceEnd:]
     LibDisk.writeBlock(currentMount, int(rootinode[:4], 16), rootdirectory)
 
@@ -448,12 +448,11 @@ def tfs_readdir():
 
 
 if __name__ == '__main__':
-    fs = tfs_mkfs(DEFAULT_DISK_NAME, 270)
+    fs = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE)
     df = tfs_mount(DEFAULT_DISK_NAME)
     one = tfs_open("test.txt")
     print(one)
     tfs_open("7chars")
-    #tfs_close(2)
     str1 = "HELLO THERE GENERAL KENOBI YOU ARE A BOLD ONE"
     tfs_write(one, str1)
     for i in range(len(str1) - 1):
