@@ -322,7 +322,7 @@ def tfs_readByte(FD):
     data = data[bOffset * 2: (bOffset * 2) + 2]
     #print(data + "\n")
     ret = bytes.fromhex(data).decode("ASCII")
-    ResourceTable[FD][1] += 1
+    ResourceTable[FD] = (ResourceTable[FD][0], ResourceTable[FD][1] + 1, ResourceTable[FD][2], ResourceTable[FD][3])
     return ret
 
 #/* change the file pointer location to offset (absolute). Returns success/error codes.*/
@@ -373,6 +373,9 @@ if __name__ == '__main__':
     tfs_makeRW(one)
     tfs_write(one, str2)
     for i in range(len(str2)):
+        print(i)
+        if i == 4:
+            tfs_seek(one, -3)
         print(tfs_readByte(one))
     print(ResourceTable)
     tfs_delete(one)
